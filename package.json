@@ -1,0 +1,26 @@
+{
+  "name": "campusx-backend-v2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Configurable CampusX IoT backend using Express, SQL Server, MQTT and SSE",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "check": "node scripts/syntax-check.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "mqtt": "^5.16.1",
+    "msnodesqlv8": "^4.4.0",
+    "mssql": "^11.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

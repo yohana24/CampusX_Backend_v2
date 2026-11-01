@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#08111f">
+  <title>Campus X · Labs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="auth-login.css">
+  <link rel="stylesheet" href="dashboard-ui-refresh.css?v=20261031">
+  <link rel="stylesheet" href="labs.css?v=20261031-labs1">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="logo-section">
+        <i class="logo-icon" data-lucide="radio"></i>
+        <div class="logo-text"><h2>Campus X</h2><span>TELEMETRY HUB</span></div>
+      </div>
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <a class="nav-item" href="index.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        <a class="nav-item active" href="labs.html"><i data-lucide="building-2"></i><span>Labs</span></a>
+        <a class="nav-item" href="devices.html"><i data-lucide="cpu"></i><span>Devices</span></a>
+        <a class="nav-item" href="alerts.html"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a class="nav-item" href="control-panel.html"><i data-lucide="sliders-horizontal"></i><span>Control Panel</span></a>
+        <a class="nav-item" href="command-history.html"><i data-lucide="history"></i><span>Command History</span></a>
+        <a class="nav-item" href="settings.html"><i data-lucide="settings"></i><span>Settings</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="system-status-box">
+          <small>LIVE SYSTEM</small>
+          <div class="sys-row"><span>Backend</span><strong id="labs-backend-status" class="muted-text">Checking…</strong></div>
+          <div class="sys-row"><span>Database</span><strong id="labs-db-status" class="muted-text">Checking…</strong></div>
+          <div class="sys-row"><span>MQTT</span><strong id="labs-mqtt-status" class="muted-text">Checking…</strong></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content labs-main">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" id="labs-mobile-menu" type="button" aria-label="Open navigation"><i data-lucide="menu"></i></button>
+          <div class="labs-breadcrumb"><span>Campus</span><i data-lucide="chevron-right"></i><strong>Labs</strong></div>
+        </div>
+        <div class="header-right-group">
+          <span class="labs-refresh-state"><span class="labs-live-dot"></span><span id="labs-updated-at">Connecting to CampusX…</span></span>
+          <div class="user-profile"><div class="user-info"><strong id="labs-username">CampusX Operator</strong><small>Authenticated session</small></div><div class="avatar"><span id="labs-avatar">CX</span></div></div>
+        </div>
+      </header>
+
+      <section class="labs-page-heading">
+        <div>
+          <div class="labs-eyebrow"><i data-lucide="building-2"></i> CAMPUS OVERVIEW</div>
+          <h1>Labs</h1>
+          <p>Monitor every laboratory, its connected devices, live environment, occupancy and alerts.</p>
+        </div>
+        <button class="labs-refresh-button" id="labs-refresh" type="button"><i data-lucide="refresh-cw"></i><span>Refresh data</span></button>
+      </section>
+
+      <section class="labs-create-wrap" aria-labelledby="create-lab-title">
+        <details class="labs-create-card" id="create-lab-panel">
+          <summary class="labs-create-summary">
+            <span class="labs-create-summary-icon"><i data-lucide="plus"></i></span>
+            <span class="labs-create-summary-copy">
+              <strong id="create-lab-title">Create a new lab</strong>
+              <small>Register a laboratory in CampusX and save it to the server database.</small>
+            </span>
+            <span class="labs-create-summary-action"><span class="labs-create-action-label">Add lab</span><i data-lucide="chevron-down"></i></span>
+          </summary>
+          <div class="labs-create-content">
+            <form id="create-lab-form" class="labs-create-form" autocomplete="off">
+              <div class="labs-create-fields">
+                <label class="labs-form-field">
+                  <span>Lab name <b>*</b></span>
+                  <input id="new-lab-name" name="roomName" type="text" maxlength="150" placeholder="e.g. Electronics Lab" required>
+                </label>
+                <label class="labs-form-field">
+                  <span>Lab code <b>*</b></span>
+                  <input id="new-lab-code" name="roomCode" type="text" maxlength="50" placeholder="e.g. LAB-04" required>
+                </label>
+                <label class="labs-form-field">
+                  <span>Room capacity</span>
+                  <input id="new-lab-capacity" name="capacity" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 30">
+                </label>
+                <label class="labs-form-field labs-location-field">
+                  <span>Building / floor / location</span>
+                  <input id="new-lab-location" name="locationDetails" type="text" maxlength="250" placeholder="e.g. First Floor · Building A">
+                </label>
+              </div>
+              <div class="labs-create-footer">
+                <p><i data-lucide="database"></i> The new lab will be saved in <code>dbo.Rooms</code>. You can assign a controller/node and its devices afterward.</p>
+                <button class="labs-create-submit" id="create-lab-submit" type="submit"><i data-lucide="plus-circle"></i><span>Create lab</span></button>
+              </div>
+              <div class="labs-create-feedback" id="create-lab-feedback" role="status" aria-live="polite" hidden></div>
+            </form>
+          </div>
+        </details>
+      </section>
+
+      <section class="labs-summary-grid" aria-label="Campus summary">
+        <article class="labs-summary-card"><div class="labs-summary-icon blue"><i data-lucide="building-2"></i></div><div><span>Total labs</span><strong id="summary-labs">—</strong><small>Registered rooms</small></div></article>
+        <article class="labs-summary-card"><div class="labs-summary-icon cyan"><i data-lucide="cpu"></i></div><div><span>Online devices</span><strong id="summary-online">—</strong><small id="summary-device-total">of — registered devices</small></div></article>
+        <article class="labs-summary-card"><div class="labs-summary-icon amber"><i data-lucide="bell-ring"></i></div><div><span>Open alerts</span><strong id="summary-alerts">—</strong><small>Across all labs</small></div></article>
+        <article class="labs-summary-card"><div class="labs-summary-icon violet"><i data-lucide="users"></i></div><div><span>Occupied labs</span><strong id="summary-occupied">—</strong><small>Latest people-count readings</small></div></article>
+      </section>
+
+      <section class="labs-workspace">
+        <div class="labs-list-column">
+          <div class="labs-section-heading">
+            <div><h2>All laboratories</h2><p>Select a lab to inspect its live status and equipment.</p></div>
+            <span class="labs-count-pill" id="labs-count">— labs</span>
+          </div>
+          <div class="labs-search"><i data-lucide="search"></i><input id="labs-search-input" type="search" placeholder="Search by lab name or code…" autocomplete="off"></div>
+          <div class="labs-card-grid" id="labs-grid"><div class="labs-loading"><span class="labs-spinner"></span>Loading registered labs…</div></div>
+        </div>
+
+        <aside class="labs-detail-column" id="lab-details" aria-live="polite">
+          <div class="labs-detail-empty"><div class="labs-empty-icon"><i data-lucide="mouse-pointer-click"></i></div><h3>Select a laboratory</h3><p>Choose a lab card to see its sensors, occupancy, devices and alerts.</p></div>
+        </aside>
+      </section>
+      <footer class="labs-page-footer"><span>CampusX · Smart Campus Monitoring</span><span>Data refreshes automatically every 15 seconds</span></footer>
+    </main>
+  </div>
+  <script src="auth-client.js"></script>
+  <script src="labs.js?v=20261031-labs1"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.venv/
+**/.venv/
+venv/
+**/venv/
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs & runtime
+*.log
+npm-debug.log*
+logs/
+**/logs/
+computer-vision/.run/
+
+# Backups
+backups/
+*.bak
+*.bak-*
+*.bak_*
+*.orig
+*.rej
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

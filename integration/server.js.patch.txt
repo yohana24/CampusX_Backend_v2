@@ -1,0 +1,15 @@
+# In src/server.js, replace the current auth import:
+#   const { AUTH_CONFIGURED } = require('./middleware/dashboardAuth');
+# With:
+const { initializeDashboardAuth, isAuthConfigured } = require('./middleware/dashboardAuth');
+
+# In main(), after SQL Server has connected successfully and after the SELECT 1 query,
+# initialize the account table BEFORE app.listen():
+await initializeDashboardAuth(sqlPool);
+
+# In the startup warning, replace:
+#   if (!AUTH_CONFIGURED) console.warn(...)
+# With:
+if (!isAuthConfigured()) console.warn('[Security] Dashboard account is not initialized. Check the root .env bootstrap values.');
+
+# Keep the existing MQTT, health service, listener, and graceful-shutdown code.

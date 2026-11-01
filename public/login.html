@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus X - System Authentication</title>
+
+    <!-- Google Fonts & Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard-live.css">
+    <link rel="stylesheet" href="auth-login.css">
+</head>
+<body class="login-body">
+
+    <!-- Top Floating Header Bar -->
+    <header class="login-top-bar">
+        <div class="brand-badge-group">
+            <div class="brand-logo">
+                <i data-lucide="radio" class="logo-icon blue-text"></i>
+                <span class="brand-name">CampusX</span>
+            </div>
+            <span class="sys-version-tag">TELEMETRY HUB - V2.4 LTS</span>
+        </div>
+
+        <div class="system-pills-group">
+            <span class="status-pill-item"><span class="dot blue"></span> CampusX local access</span>
+            <span class="status-pill-item"><i data-lucide="activity" style="width: 12px;"></i> SQL Server + MQTT</span>
+            <span class="status-pill-item"><i data-lucide="shield-check" style="width: 12px;" class="blue-text"></i> Protected dashboard session</span>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="login-main-wrapper">
+
+        <!-- Left Hero Section -->
+        <section class="login-hero-section">
+            <span class="sub-hero-tag"><i data-lucide="cpu" style="width: 12px;"></i> SMART LABORATORY TELEMETRY SYSTEM</span>
+            
+            <h1 class="hero-heading">
+                One intelligent view of your smart campus.
+            </h1>
+            
+            <p class="hero-description">
+                Monitor rooms, devices, environmental sensors, occupancy, alerts, and remote controls from one connected CampusX dashboard.
+            </p>
+
+            <!-- Metrics Cards Row -->
+            <div class="login-metrics-grid">
+                <div class="login-metric-card">
+                    <div class="metric-head">
+                        <small>LIVE DATA</small>
+                        <i data-lucide="network" class="blue-text" style="width: 16px;"></i>
+                    </div>
+                    <div class="metric-val">Telemetry</div>
+                    <small class="metric-sub"><span class="dot blue"></span> From registered CampusX devices</small>
+                </div>
+
+                <div class="login-metric-card">
+                    <div class="metric-head">
+                        <small>DATA STORE</small>
+                        <i data-lucide="database" class="purple-text" style="width: 16px;"></i>
+                    </div>
+                    <div class="metric-val">SQL Server</div>
+                    <small class="metric-sub"><span class="dot blue"></span> Persistent telemetry and alerts</small>
+                </div>
+
+                <div class="login-metric-card">
+                    <div class="metric-head">
+                        <small>ACCESS</small>
+                        <i data-lucide="shield-alert" class="green-text" style="width: 16px;"></i>
+                    </div>
+                    <div class="metric-val">Sign in</div>
+                    <small class="metric-sub"><span class="dot blue"></span> Server-side authenticated session</small>
+                </div>
+            </div>
+
+            <!-- Cluster Topology Card -->
+            <div class="cluster-topology-card">
+                <div class="topology-info">
+                    <i data-lucide="share-2" class="blue-text" style="width: 18px;"></i>
+                    <div>
+                        <small>CLUSTER TOPOLOGY</small>
+                        <strong>CampusX • Smart Campus Operations</strong>
+                        <p>Live room, sensor, people-counting, and actuator data</p>
+                    </div>
+                </div>
+                <div class="topology-nodes-graphic">
+                    <span class="graphic-dot d1"></span>
+                    <span class="graphic-line l1"></span>
+                    <span class="graphic-dot d2"></span>
+                    <span class="graphic-line l2"></span>
+                    <span class="graphic-dot d3"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Login Form Panel -->
+        <section class="login-form-panel">
+            <div class="form-header-title">
+                <h2>Welcome Back</h2>
+                <i data-lucide="shield" class="blue-text" style="width: 20px;"></i>
+            </div>
+            <p class="form-subtitle">Sign in with your CampusX dashboard account to continue.</p>
+
+            <div class="divider-line">
+                <span>CAMPUSX ACCOUNT</span>
+            </div>
+
+            <form id="login-form" class="auth-form" autocomplete="on">
+                <div class="form-group">
+                    <label for="user-email">Username</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="user" class="input-icon"></i>
+                        <input type="text" id="user-email" name="username" autocomplete="username" required class="form-input" placeholder="CampusX username">
+                    </div>
+                </div>
+
+                <div class="form-group margin-top-12">
+                    <label for="user-password">Password</label>
+                    <div class="input-with-icon">
+                        <i data-lucide="lock" class="input-icon"></i>
+                        <input type="password" id="user-password" name="password" autocomplete="current-password" required class="form-input" placeholder="Enter your password">
+                        <button type="button" class="pass-toggle-button" id="toggle-password" aria-label="Show password"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+
+                <p id="login-error" class="cx-login-error" role="alert" aria-live="polite" hidden></p>
+                <div class="form-options-row">
+                    <span class="remember-me">Session expires after 8 hours</span>
+                    <span class="forgot-pass">Ask your CampusX administrator for access</span>
+                </div>
+
+                <button type="submit" class="btn-authenticate" id="login-submit">
+                    Sign in to CampusX &rarr;
+                </button>
+            </form>
+
+            <div class="login-footer-security">
+                <p><i data-lucide="shield-check" style="width: 14px;" class="green-text"></i> Authenticated by a signed, HttpOnly server session</p>
+                <small>Credentials are configured by the CampusX administrator.</small>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Footer -->
+    <footer class="login-bottom-footer">
+        <div class="footer-left">
+            <span><i data-lucide="code" style="width: 12px;"></i> CampusX Framework © 2025 - Academic Computing & IoT Infrastructure</span>
+        </div>
+        <div class="footer-center">
+            <span><span class="dot blue"></span> CampusX authenticated access</span>
+        </div>
+        <div class="footer-right">
+            <span>🌐 CampusX Smart Campus</span>
+        </div>
+    </footer>
+
+    <script src="login.js"></script>
+    <script>
+        if (window.lucide) window.lucide.createIcons();
+    </script>
+</body>
+</html>

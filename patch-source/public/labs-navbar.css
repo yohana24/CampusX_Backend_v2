@@ -1,0 +1,193 @@
+/* Labs navbar alignment patch — mirrors the horizontal CampusX navigation on other pages. */
+.app-container {
+  min-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.app-container > .sidebar {
+  position: sticky !important;
+  inset-block-start: 0 !important;
+  z-index: 1000 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 78px !important;
+  height: auto !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 26px !important;
+  padding: 12px clamp(16px, 3vw, 38px) !important;
+  overflow: visible !important;
+  background: rgba(10, 18, 32, .96) !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(148, 163, 184, .15) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, .16) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.app-container > .sidebar > .logo-section {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  min-width: 142px !important;
+  margin: 0 !important;
+  gap: 11px !important;
+}
+
+.app-container > .sidebar > .logo-section .logo-icon {
+  width: 29px !important;
+  height: 29px !important;
+  color: #60a5fa !important;
+  filter: drop-shadow(0 0 10px rgba(96, 165, 250, .25));
+}
+.app-container > .sidebar > .logo-section .logo-text h2 {
+  margin: 0 !important;
+  color: #edf4ff !important;
+  font-size: 16px !important;
+  letter-spacing: -.35px !important;
+}
+.app-container > .sidebar > .logo-section .logo-text span {
+  color: #8fa2bb !important;
+  font-size: 9px !important;
+  letter-spacing: 1.05px !important;
+}
+
+.app-container > .sidebar > .sidebar-nav {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  min-width: 0 !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 2px 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  white-space: nowrap !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.app-container > .sidebar > .sidebar-nav::-webkit-scrollbar { display: none; }
+.app-container > .sidebar > .sidebar-nav .nav-item {
+  position: relative !important;
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 9px !important;
+  min-height: 42px !important;
+  padding: 0 13px !important;
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  color: #9aabc1 !important;
+  background: transparent !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: .05px !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease !important;
+}
+.app-container > .sidebar > .sidebar-nav .nav-item svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 auto !important;
+}
+.app-container > .sidebar > .sidebar-nav .nav-item:hover {
+  color: #eaf3ff !important;
+  background: rgba(148, 163, 184, .08) !important;
+  border-color: rgba(148, 163, 184, .12) !important;
+  transform: translateY(-1px);
+}
+.app-container > .sidebar > .sidebar-nav .nav-item.active,
+.app-container > .sidebar > .sidebar-nav .nav-item[aria-current="page"] {
+  color: #8fc5ff !important;
+  background: linear-gradient(135deg, rgba(37, 99, 235, .22), rgba(14, 165, 233, .10)) !important;
+  border-color: rgba(96, 165, 250, .25) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), 0 5px 16px rgba(37, 99, 235, .08) !important;
+}
+.app-container > .sidebar > .sidebar-nav .nav-item.active::after,
+.app-container > .sidebar > .sidebar-nav .nav-item[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 13px;
+  bottom: -3px;
+  height: 2px;
+  border-radius: 3px;
+  background: #60a5fa;
+  box-shadow: 0 0 10px rgba(96, 165, 250, .55);
+}
+
+.app-container > .sidebar > .sidebar-footer {
+  display: block !important;
+  flex: 0 0 auto !important;
+  margin: 0 0 0 auto !important;
+}
+.app-container > .sidebar > .sidebar-footer .system-status-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 11px !important;
+  border: 1px solid rgba(148, 163, 184, .15) !important;
+  border-radius: 12px !important;
+  background: rgba(15, 29, 48, .78) !important;
+  color: #8fa2bb !important;
+  font-size: 10px !important;
+  white-space: nowrap !important;
+}
+.app-container > .sidebar > .sidebar-footer .system-status-box > small { display: none !important; }
+.app-container > .sidebar > .sidebar-footer .sys-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  margin: 0 !important;
+}
+
+.app-container > .labs-main {
+  width: 100% !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  margin: 0 !important;
+}
+.app-container .labs-main .mobile-toggle-btn { display: none !important; }
+
+@media (max-width: 1180px) {
+  .app-container > .sidebar { gap: 16px !important; padding-inline: 18px !important; }
+  .app-container > .sidebar > .sidebar-nav .nav-item { padding-inline: 10px !important; }
+  .app-container > .sidebar > .sidebar-footer { display: none !important; }
+}
+@media (max-width: 900px) {
+  .app-container > .sidebar {
+    position: sticky !important;
+    flex-wrap: wrap !important;
+    gap: 10px 16px !important;
+    padding: 11px 16px 9px !important;
+  }
+  .app-container > .sidebar > .logo-section { min-height: 34px !important; }
+  .app-container > .sidebar > .sidebar-nav {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+  .app-container > .sidebar > .sidebar-footer { display: none !important; }
+}
+@media (max-width: 600px) {
+  .app-container > .sidebar { padding-inline: 12px !important; }
+  .app-container > .sidebar > .sidebar-nav { gap: 5px !important; }
+  .app-container > .sidebar > .sidebar-nav .nav-item {
+    min-height: 39px !important;
+    padding: 0 11px !important;
+    font-size: 11px !important;
+  }
+  .app-container > .sidebar > .sidebar-nav .nav-item svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+}

@@ -1,0 +1,155 @@
+/* CampusX Computer Vision occupancy card — focused Control Panel enhancement */
+#control-cv-card.cv-occupancy-card {
+  min-width: 0;
+  align-self: stretch;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 17px;
+  overflow: hidden;
+}
+#control-cv-card .cv-card-header { align-items: flex-start; gap: 12px; }
+#control-cv-card .cv-card-header .header-title-group { min-width: 0; }
+#control-cv-card .cv-card-header .header-title-group p { max-width: 320px; }
+#control-cv-card .cv-live-badge { flex: 0 0 auto; white-space: nowrap; }
+#control-cv-card .cv-occupancy-layout {
+  display: grid;
+  grid-template-columns: minmax(170px, .82fr) minmax(0, 1.18fr);
+  gap: 12px;
+  min-width: 0;
+}
+#control-cv-card .cv-count-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 17px;
+  border: 1px solid rgba(56, 189, 248, .22);
+  border-radius: 13px;
+  background: radial-gradient(circle at 85% 10%, rgba(56,189,248,.16), transparent 42%), linear-gradient(145deg, rgba(15,35,57,.98), rgba(10,23,39,.98));
+}
+#control-cv-card .cv-count-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #9cb4cf;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .09em;
+}
+#control-cv-card .cv-count-label svg { width: 14px; height: 14px; color: #38bdf8; }
+#control-cv-card .headcount-num {
+  margin-top: 9px;
+  color: #f1f7ff;
+  font-size: clamp(42px, 4.5vw, 60px);
+  font-weight: 800;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+#control-cv-card .cv-count-caption {
+  margin-top: 8px;
+  color: #a9bdd4;
+  font-size: 10px;
+  line-height: 1.45;
+}
+#control-cv-card .cv-count-footnote {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148,163,184,.14);
+  color: #8299b4;
+  font-size: 9px;
+  line-height: 1.5;
+}
+#control-cv-card .cv-occupancy-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  min-width: 0;
+}
+#control-cv-card .cv-info-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  min-height: 82px;
+  padding: 11px;
+  border: 1px solid rgba(148,163,184,.14);
+  border-radius: 11px;
+  background: rgba(8,18,31,.72);
+}
+#control-cv-card .cv-tile-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 29px;
+  width: 29px;
+  height: 29px;
+  border-radius: 8px;
+  color: #60c5f2;
+  background: rgba(56,189,248,.11);
+}
+#control-cv-card .cv-tile-icon svg { width: 15px; height: 15px; }
+#control-cv-card .cv-tile-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+#control-cv-card .cv-tile-copy small {
+  color: #8fa5bf;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.35;
+}
+#control-cv-card .cv-tile-copy strong {
+  overflow-wrap: anywhere;
+  color: #edf5ff;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+#control-cv-card .cv-tile-copy span { color: #879bb4; font-size: 9px; line-height: 1.35; }
+#control-cv-card .cv-capacity-section { display: flex; flex-direction: column; gap: 8px; }
+#control-cv-card .cv-capacity-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: #c0cee0;
+  font-size: 10px;
+  font-weight: 650;
+}
+#control-cv-card .cv-capacity-heading span:last-child { color: #8499b3; font-size: 9px; font-weight: 500; text-align: right; }
+#control-cv-card .cv-progress-track { height: 8px; border-radius: 20px; background: rgba(148,163,184,.15); }
+#control-cv-card .cv-progress-track .progress-fill { border-radius: inherit; background: linear-gradient(90deg, #0ea5e9, #38bdf8); transition: width .3s ease; }
+#control-cv-card .cv-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0;
+  padding-top: 11px;
+  border-top: 1px solid rgba(148,163,184,.13);
+}
+#control-cv-card .cv-source-meta, #control-cv-card .cv-source-meta > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#control-cv-card .cv-source-meta { gap: 13px; color: #8fa5bf; font-size: 9px; }
+#control-cv-card .cv-source-meta svg { width: 12px; height: 12px; color: #60bde8; }
+#control-cv-card .cv-source-meta strong { color: #dce9f8; font-weight: 700; }
+#control-cv-card .cv-card-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+#control-cv-card .cv-card-actions .btn-secondary-xs { padding: 6px 9px; font-size: 9px; text-decoration: none; }
+#control-cv-card .cv-card-actions svg { width: 12px; height: 12px; }
+@media (max-width: 900px) {
+  #control-cv-card .cv-occupancy-layout { grid-template-columns: minmax(145px, .75fr) minmax(0, 1.25fr); }
+  #control-cv-card .cv-info-tile { padding: 9px; }
+}
+@media (max-width: 620px) {
+  #control-cv-card .cv-occupancy-layout { grid-template-columns: minmax(0, 1fr); }
+  #control-cv-card .cv-count-panel { min-height: 150px; }
+  #control-cv-card .cv-occupancy-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #control-cv-card .cv-card-footer { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 380px) {
+  #control-cv-card .cv-occupancy-details { grid-template-columns: minmax(0, 1fr); }
+  #control-cv-card .cv-info-tile { min-height: 68px; }
+  #control-cv-card .cv-capacity-heading { align-items: flex-start; flex-direction: column; }
+}

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus X - Settings & Preferences</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard-live.css">
+    <link rel="stylesheet" href="auth-login.css">
+    <link rel="stylesheet" href="settings-account.css">
+  <link rel="stylesheet" href="dashboard-ui-refresh.css?v=20261031">
+</head>
+<body>
+
+    <div class="app-container">
+        <!--Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <i data-lucide="radio" class="logo-icon"></i>
+                <div class="logo-text">
+                    <h2>Campus X</h2>
+                    <span>TELEMETRY HUB</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+        <a class="nav-item" href="index.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        <a class="nav-item" href="labs.html"><i data-lucide="building-2"></i><span>Labs</span></a>
+        <a class="nav-item" href="devices.html"><i data-lucide="cpu"></i><span>Devices</span></a>
+        <a class="nav-item" href="alerts.html"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a class="nav-item" href="control-panel.html"><i data-lucide="sliders-horizontal"></i><span>Control Panel</span></a>
+        <a class="nav-item" href="command-history.html"><i data-lucide="history"></i><span>Command History</span></a>
+        <a class="nav-item active" href="settings.html" aria-current="page"><i data-lucide="settings"></i><span>Settings</span></a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="system-status-box">
+                    <small>SYSTEM STATUS</small>
+                    <div class="sys-row"><span>Server</span> <strong id="cx-side-api-status" class="cx-status-pending">Checking…</strong></div>
+                    <div class="sys-row"><span>Database</span> <strong id="cx-side-db-status" class="cx-status-pending">Checking…</strong></div>
+                    <div class="sys-row"><span>MQTT Broker</span> <strong id="cx-side-mqtt-status" class="cx-status-pending">Checking…</strong></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ==================== Main Content ==================== -->
+        <main class="main-content">
+            
+            <!-- Top Header (بدون Search Bar) -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="mobile-toggle-btn" type="button" aria-label="Open navigation"><i data-lucide="menu"></i></button>
+                    <div class="cx-settings-scope">
+                        <strong>Global System Settings</strong>
+                        <small>Applies across CampusX • No lab filter on this page</small>
+                    </div>
+                </div>
+
+                <div class="header-right-group">
+                    <button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+                        <i data-lucide="moon"></i>
+                    </button>
+                    <button class="icon-btn"><i data-lucide="bell"></i></button>
+
+                    <div class="user-profile">
+                        <div class="user-info">
+                            <strong id="cx-header-username">Loading account…</strong>
+                            <small id="cx-header-role">Authenticated account</small>
+                        </div>
+                        <div class="avatar"><i data-lucide="user"></i></div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Settings Page Title Banner -->
+            <div class="page-title-banner">
+                <div>
+                    <div class="title-with-badge">
+                        <h1>Settings & Preferences</h1>
+                        <span class="ver-badge">ADMIN CONFIGURATION MODE v3.4.1</span>
+                    </div>
+                    <p class="subtitle-text">
+                        Global laboratory parameters, credential governance, and real-time telemetry pipeline pipelines.
+                    </p>
+                </div>
+                <div class="banner-actions">
+                    <span class="cx-live-source" id="cx-settings-live-state"><span class="cx-live-dot"></span> Loading live system data…</span>
+                </div>
+            </div>
+
+            <!-- Settings Grid (2 Columns x 2 Rows) -->
+            <div class="settings-2col-grid">
+
+                <!-- Card 1: User Profile -->
+                <div class="settings-card">
+                    <div class="card-header-bar">
+                        <div class="header-title-group">
+                            <i data-lucide="user" class="blue-text"></i>
+                            <div>
+                                <h3>User Profile</h3>
+                                <p>Personal identity & administrator credentials</p>
+                            </div>
+                        </div>
+                        <span class="tier-badge" id="cx-account-tier">CAMPUSX OPERATOR</span>
+                    </div>
+
+                    <div class="card-body-content">
+                        <div class="profile-avatar-row">
+                            <div class="profile-avatar-box" id="cx-account-avatar">CX</div>
+                            <div class="profile-details">
+                                <h4 id="cx-account-title">Loading account...</h4>
+                                <p id="cx-account-subtitle">CampusX Operator Account</p>
+                                <span id="cx-account-status">Loading account status...</span>
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>USERNAME</label>
+                                <input id="cx-account-username" type="text" value="Loading..." class="form-input" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>ACCOUNT STATUS</label>
+                                <input id="cx-account-status-field" type="text" value="Loading..." class="form-input" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-group margin-top-12">
+                            <label>ACCOUNT ID & ACCESS</label>
+                            <input id="cx-account-id-role" type="text" value="Loading account information..." class="form-input" readonly>
+                        </div>
+
+                        <div class="card-footer-action">
+                            <small id="cx-account-updated">Account information is loaded from CampusX Backend.</small>
+                        </div>
+
+                        <details class="cx-account-editor cx-account-details" id="cx-account-editor">
+                            <summary class="btn-secondary-sm cx-account-edit-summary" id="cx-edit-account"><i data-lucide="user-round-pen"></i> Edit Account</summary>
+                            <div class="cx-account-editor-panel">
+                            <div class="cx-account-editor-heading">
+                                <div>
+                                    <h4 id="cx-account-editor-title">Edit account</h4>
+                                    <p>Changes are saved securely by the CampusX server.</p>
+                                </div>
+                                <button type="button" class="cx-account-close" id="cx-account-close" aria-label="Close editor">×</button>
+                            </div>
+
+                            <form id="cx-credentials-form" autocomplete="off">
+                                <div class="form-group">
+                                    <label for="cx-edit-username">NEW USERNAME</label>
+                                    <input id="cx-edit-username" name="username" class="form-input" minlength="3" maxlength="64" required autocomplete="username">
+                                </div>
+                                <div class="form-group margin-top-12">
+                                    <label for="cx-current-password">CURRENT PASSWORD (REQUIRED)</label>
+                                    <input id="cx-current-password" name="currentPassword" type="password" class="form-input" required autocomplete="current-password">
+                                </div>
+                                <div class="form-grid-2 margin-top-12">
+                                    <div class="form-group">
+                                        <label for="cx-new-password">NEW PASSWORD (OPTIONAL)</label>
+                                        <input id="cx-new-password" name="newPassword" type="password" class="form-input" minlength="12" maxlength="128" autocomplete="new-password" placeholder="At least 12 characters">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="cx-confirm-password">CONFIRM NEW PASSWORD</label>
+                                        <input id="cx-confirm-password" name="confirmPassword" type="password" class="form-input" minlength="12" maxlength="128" autocomplete="new-password" placeholder="Repeat new password">
+                                    </div>
+                                </div>
+                                <div class="cx-account-actions">
+                                    <button type="submit" class="btn-primary-sm" id="cx-save-credentials"><i data-lucide="save"></i> Save Account Changes</button>
+                                    <button type="button" class="btn-secondary-sm" id="cx-cancel-credentials">Cancel</button>
+                                </div>
+                                <p class="cx-account-message" id="cx-credentials-message" role="status" aria-live="polite"></p>
+                            </form></div>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Card 2: Live System Connections (values come from CampusX APIs) -->
+                <div class="settings-card">
+                    <div class="card-header-bar">
+                        <div class="header-title-group">
+                            <i data-lucide="network" class="blue-text"></i>
+                            <div>
+                                <h3>System Connections</h3>
+                                <p>Live health from the same Backend used by Dashboard, Devices and Control Panel</p>
+                            </div>
+                        </div>
+                        <span class="cx-service-summary" id="cx-service-summary">Checking services…</span>
+                    </div>
+                    <div class="card-body-content">
+                        <div class="connection-row">
+                            <div class="conn-info">
+                                <i data-lucide="globe" class="conn-icon blue-text"></i>
+                                <div>
+                                    <div class="conn-title-line"><strong>CampusX REST API</strong><span id="cx-api-status" class="cx-service-badge is-pending">Checking</span></div>
+                                    <p id="cx-api-detail">Checking the authenticated CampusX Backend health endpoint.</p>
+                                </div>
+                            </div>
+                            <span class="uptime-text" id="cx-api-time">—</span>
+                        </div>
+                        <div class="connection-row">
+                            <div class="conn-info">
+                                <i data-lucide="database" class="conn-icon purple-text"></i>
+                                <div>
+                                    <div class="conn-title-line"><strong>SQL Server</strong><span id="cx-db-status" class="cx-service-badge is-pending">Checking</span></div>
+                                    <p id="cx-db-detail">CampusX database connection status.</p>
+                                </div>
+                            </div>
+                            <span class="uptime-text" id="cx-db-time">—</span>
+                        </div>
+                        <div class="connection-row">
+                            <div class="conn-info">
+                                <i data-lucide="radio-tower" class="conn-icon green-text"></i>
+                                <div>
+                                    <div class="conn-title-line"><strong>MQTT Broker</strong><span id="cx-mqtt-status" class="cx-service-badge is-pending">Checking</span></div>
+                                    <p id="cx-mqtt-detail">Mosquitto connection state reported by the Node.js MQTT client.</p>
+                                </div>
+                            </div>
+                            <span class="uptime-text" id="cx-mqtt-time">—</span>
+                        </div>
+                        <div class="connection-row">
+                            <div class="conn-info">
+                                <i data-lucide="scan-eye" class="conn-icon blue-text"></i>
+                                <div>
+                                    <div class="conn-title-line"><strong>Computer Vision</strong><span id="cx-cv-status" class="cx-service-badge is-pending">Checking</span></div>
+                                    <p id="cx-cv-detail">Status is inferred from the latest people_count telemetry for people-counter-lab-01.</p>
+                                </div>
+                            </div>
+                            <span class="uptime-text" id="cx-cv-time">—</span>
+                        </div>
+                        <div class="card-footer-action">
+                            <small id="cx-system-updated">Waiting for live CampusX system data…</small>
+                            <button class="btn-secondary-sm" id="cx-refresh-system" type="button"><i data-lucide="refresh-cw"></i> Refresh Status</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Notification Channels (only real configured capabilities are shown) -->
+                <div class="settings-card">
+                    <div class="card-header-bar">
+                        <div class="header-title-group">
+                            <i data-lucide="bell" class="blue-text"></i>
+                            <div>
+                                <h3>Notification Channels</h3>
+                                <p>Delivery provider readiness; unavailable providers are shown as not configured</p>
+                            </div>
+                        </div>
+                        <span class="cx-service-badge is-pending" id="cx-notification-summary">No providers configured</span>
+                    </div>
+                    <div class="card-body-content">
+                        <div class="toggle-setting-item">
+                            <div class="toggle-text">
+                                <strong>SMS alerts</strong>
+                                <p>SMS provider integration is not configured in this CampusX instance.</p>
+                            </div>
+                            <span class="cx-service-badge is-neutral">Not configured</span>
+                        </div>
+                        <div class="toggle-setting-item">
+                            <div class="toggle-text">
+                                <strong>Browser push notifications</strong>
+                                <p>Browser push subscription storage and delivery are not configured yet.</p>
+                            </div>
+                            <span class="cx-service-badge is-neutral">Not configured</span>
+                        </div>
+                        <div class="card-footer-action">
+                            <small id="cx-alert-channel-detail">Active alerts are read from CampusX SQL Server.</small>
+                            <a class="btn-secondary-sm" href="alerts.html"><i data-lucide="bell-ring"></i> View Alerts</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Security & Privacy -->
+                <div class="settings-card">
+                    <div class="card-header-bar">
+                        <div class="header-title-group">
+                            <i data-lucide="shield-check" class="blue-text"></i>
+                            <div>
+                                <h3>Security & Privacy</h3>
+                                <p>Authentication security & access controls</p>
+                            </div>
+                        </div>
+                        <span class="sec-badge" id="cx-auth-level">Checking Session</span>
+                    </div>
+
+                    <div class="card-body-content">
+                        <div class="cx-connection-info" style="margin:0">
+                            <strong>CampusX Dashboard Authentication</strong>
+                            <span id="cx-auth-method">Checking the authenticated CampusX session.</span>
+                            <span id="cx-auth-session-info">Session details are loading from the backend.</span>
+                            <span id="cx-auth-last-login">Last login: loading…</span>
+                            <span>Multi-user roles, University SSO and 2FA are not configured in this single-operator account.</span>
+                        </div>
+                        <div class="card-footer-action">
+                            <small>Use the Edit Account section in User Profile. The current password is required before saving credential changes.</small>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/auth-client.js"></script>
+    <script src="/dashboard-app.js"></script>
+    <script src="/settings-account.js?v=20261031-no-email-1"></script>
+    <script>
+        if (window.lucide) window.lucide.createIcons();
+    </script>
+</body>
+</html>

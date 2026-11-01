@@ -1,0 +1,6 @@
+# Requirements for the teammate's original headcount application + CampusX bridge
+Flask>=3.0,<4.0
+opencv-python>=4.9,<5.0
+ultralytics>=8.2,<9.0
+paho-mqtt>=2.0,<3.0
+python-dotenv>=1.0,<2.0

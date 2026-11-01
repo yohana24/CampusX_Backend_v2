@@ -1,0 +1,20 @@
+أضف السطر التالي بجوار require('./routes/api') في src/app.js:
+
+const computerVisionRouter = require('./routes/computerVision');
+
+ثم أضف Mount التالي قبل السطر الموجود حاليًا:
+
+app.use('/api/v1', requireDashboardApi, apiKeyGuard, apiRouter);
+
+أضف قبله مباشرةً:
+
+app.use('/api/v1/computer-vision', requireDashboardApi, apiKeyGuard, computerVisionRouter);
+
+لا تستبدل src/app.js بالكامل؛ أضف السطرين فقط إلى ملفك الحالي للحفاظ على تعديلات Login وDashboard الموجودة عندك.
+
+المسارات الناتجة:
+GET  /api/v1/computer-vision/status
+POST /api/v1/computer-vision/start
+POST /api/v1/computer-vision/stop
+
+هذه المسارات محمية بجلسة Dashboard، وعمليات POST تمر أيضًا عبر apiKeyGuard.

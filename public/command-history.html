@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html data-theme="dark" dir="ltr" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus X - Command History</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="style.css" rel="stylesheet" />
+  <link href="auth-login.css" rel="stylesheet" />
+  <link href="command-audit.css?v=20261031-history" rel="stylesheet" />
+  <link href="command-history.css?v=20261031-history" rel="stylesheet" />
+  <link rel="stylesheet" href="dashboard-ui-refresh.css?v=20261031">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div>
+        <div class="logo-section">
+          <i class="logo-icon" data-lucide="radio"></i>
+          <div class="logo-text"><h2>Campus X</h2><span>TELEMETRY HUB</span></div>
+        </div>
+        <nav class="sidebar-nav">
+        <a class="nav-item" href="index.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        <a class="nav-item" href="labs.html"><i data-lucide="building-2"></i><span>Labs</span></a>
+        <a class="nav-item" href="devices.html"><i data-lucide="cpu"></i><span>Devices</span></a>
+        <a class="nav-item" href="alerts.html"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a class="nav-item" href="control-panel.html"><i data-lucide="sliders-horizontal"></i><span>Control Panel</span></a>
+        <a class="nav-item active" href="command-history.html" aria-current="page"><i data-lucide="history"></i><span>Command History</span></a>
+        <a class="nav-item" href="settings.html"><i data-lucide="settings"></i><span>Settings</span></a>
+        </nav>
+      </div>
+      <div class="sidebar-footer">
+        <div class="system-status-box">
+          <small>COMMAND AUDIT</small>
+          <div class="sys-row"><span>Scope</span><strong class="blue-text">All users</strong></div>
+          <div class="sys-row"><span>Rooms</span><strong class="blue-text">All rooms</strong></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" id="mobile-menu-btn" type="button" aria-label="Open navigation"><i data-lucide="menu"></i></button>
+          <div class="history-breadcrumb"><a href="control-panel.html">Control Panel</a><span>/</span><strong>Command History</strong></div>
+        </div>
+        <div class="header-right-group">
+          <div class="user-profile">
+            <div class="user-info"><strong>CampusX Operator</strong><small>Authenticated session</small></div>
+            <div class="avatar"><i data-lucide="user"></i></div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-title-banner command-history-title">
+        <div>
+          <div class="title-with-badge"><i class="blue-text" data-lucide="list-checks" style="width:20px;height:20px"></i><h1>Command History</h1></div>
+          <p class="subtitle-text">All commands sent by all CampusX users across every room and registered device.</p>
+        </div>
+        <div class="banner-actions"><a class="command-history-back" href="control-panel.html"><i data-lucide="arrow-left"></i> Back to Control Panel</a></div>
+      </div>
+
+      <section class="ctrl-card command-history-card">
+        <div class="card-header-bar">
+          <div class="header-title-group">
+            <i class="blue-text" data-lucide="history"></i>
+            <div><h3>All User Commands</h3><p>Sender, destination, command type, timestamp, and acknowledgement result.</p></div>
+          </div>
+          <span class="broker-live-tag" id="history-connection-status">● LOADING</span>
+        </div>
+
+        <div class="command-history-toolbar">
+          <div class="command-history-summary">
+            <small>ALL USERS · ALL ROOMS</small>
+            <strong id="history-total">Loading command records…</strong>
+          </div>
+          <label class="command-history-filter">Status
+            <select id="history-status-filter">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="sent">Sent</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+              <option value="timeout">Timeout</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="command-audit-table-wrap command-history-table-wrap">
+          <table class="command-audit-table command-history-table">
+            <thead><tr>
+              <th>Who sent it</th><th>Sent to</th><th>Command</th><th>Description</th><th>Sent at</th><th>Result</th>
+            </tr></thead>
+            <tbody id="history-command-list"><tr><td colspan="6" class="command-audit-empty">Loading all CampusX commands…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="command-history-pagination">
+          <span id="history-page-summary">Page —</span>
+          <div class="command-history-page-actions">
+            <button id="history-prev" class="command-history-page-btn" type="button" disabled><i data-lucide="chevron-left"></i> Previous</button>
+            <button id="history-next" class="command-history-page-btn primary" type="button" disabled>Next <i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+        <p class="command-audit-note">Legacy commands created before sender tracking was enabled may show “Legacy command (sender not recorded)”. Command payloads are intentionally hidden in this view.</p>
+      </section>
+    </main>
+  </div>
+  <script src="auth-client.js"></script>
+  <script src="command-history.js?v=20261031-description"></script>
+  <script>if(window.lucide){window.lucide.createIcons();}</script>
+</body>
+</html>

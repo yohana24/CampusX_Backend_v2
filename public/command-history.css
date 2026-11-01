@@ -1,0 +1,32 @@
+/* Standalone all-user command history page, aligned with the CampusX dark dashboard. */
+.history-breadcrumb { display:flex; align-items:center; gap:9px; color:var(--text-muted); font-size:12px; }
+.history-breadcrumb a { color:#60a5fa; text-decoration:none; }
+.history-breadcrumb a:hover { text-decoration:underline; }
+.history-breadcrumb strong { color:var(--text-main); font-weight:650; }
+.command-history-title { align-items:center; }
+.command-history-back { display:inline-flex; align-items:center; gap:8px; padding:9px 12px; border:1px solid var(--border-color); border-radius:8px; color:var(--text-main); text-decoration:none; font-size:12px; font-weight:600; background:rgba(148,163,184,.06); }
+.command-history-back:hover { border-color:rgba(56,189,248,.45); color:var(--accent-blue); }
+.command-history-card { margin-top:18px; padding:20px; }
+.command-history-toolbar { display:flex; justify-content:space-between; align-items:end; gap:18px; margin:18px 0 14px; }
+.command-history-summary { display:grid; gap:5px; }
+.command-history-summary small { color:var(--text-muted); font-size:10px; font-weight:800; letter-spacing:.12em; }
+.command-history-summary strong { color:var(--text-main); font-size:14px; }
+.command-history-filter { display:grid; gap:6px; color:var(--text-muted); font-size:11px; font-weight:600; }
+.command-history-filter select { min-width:170px; padding:9px 12px; border:1px solid var(--border-color); border-radius:8px; background:#0d1117; color:var(--text-main); outline:none; }
+.command-history-filter select:focus { border-color:var(--accent-blue); }
+.command-history-table-wrap { margin-top:4px; }
+.command-history-table { min-width:800px; }
+.command-history-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; color:var(--text-muted); font-size:11px; }
+.command-history-page-actions { display:flex; align-items:center; gap:8px; }
+.command-history-page-btn { display:inline-flex; align-items:center; gap:6px; padding:9px 12px; border:1px solid var(--border-color); border-radius:8px; background:rgba(148,163,184,.06); color:var(--text-main); font-size:11px; font-weight:700; cursor:pointer; }
+.command-history-page-btn.primary { border-color:rgba(56,189,248,.35); background:rgba(56,189,248,.12); color:#7dd3fc; }
+.command-history-page-btn:disabled { opacity:.38; cursor:not-allowed; }
+.command-history-page-btn:not(:disabled):hover { border-color:var(--accent-blue); }
+.command-history-page-btn svg { width:14px; height:14px; }
+@media(max-width:760px) {
+  .command-history-toolbar { align-items:stretch; flex-direction:column; }
+  .command-history-filter select { width:100%; }
+  .command-history-pagination { align-items:flex-start; flex-direction:column; }
+  .command-history-title { align-items:flex-start; }
+  .command-history-card { padding:13px; }
+}

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html data-theme="dark" dir="ltr" lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Campus X - HVAC &amp; Lab Control Panel
+  </title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/lucide@latest">
+  </script>
+  <link href="style.css" rel="stylesheet"/>
+  <link href="auth-login.css" rel="stylesheet"/>
+  <link href="command-audit.css?v=20261031-audit" rel="stylesheet"/>
+   <link rel="stylesheet" href="dashboard-ui-refresh.css?v=20261031">
+  <link rel="stylesheet" href="control-panel-compact.css?v=20261031-compact1">
+  <link rel="stylesheet" href="control-panel-occupancy.css?v=20261031-cv2">
+  <link rel="stylesheet" href="control-panel-automation.css?v=20261031-auto1">
+  <link rel="stylesheet" href="control-panel-cv-control.css?v=20261031-cvcontrol1">
+</head>
+ <body>
+  <div class="app-container">
+   <!--  Sidebar-->
+   <aside class="sidebar">
+    <div class="logo-section">
+     <i class="logo-icon" data-lucide="radio">
+     </i>
+     <div class="logo-text">
+      <h2>
+       Campus X
+      </h2>
+      <span>
+       TELEMETRY HUB
+      </span>
+     </div>
+    </div>
+    <nav class="sidebar-nav">
+        <a class="nav-item" href="index.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        <a class="nav-item" href="labs.html"><i data-lucide="building-2"></i><span>Labs</span></a>
+        <a class="nav-item" href="devices.html"><i data-lucide="cpu"></i><span>Devices</span></a>
+        <a class="nav-item" href="alerts.html"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a class="nav-item active" href="control-panel.html" aria-current="page"><i data-lucide="sliders-horizontal"></i><span>Control Panel</span></a>
+        <a class="nav-item" href="command-history.html"><i data-lucide="history"></i><span>Command History</span></a>
+        <a class="nav-item" href="settings.html"><i data-lucide="settings"></i><span>Settings</span></a>
+    </nav>
+    <div class="sidebar-footer">
+     <div class="system-status-box">
+      <small>
+       LIVE TELEMETRY
+      </small>
+      <div class="sys-row">
+       <span>
+        Server
+       </span>
+       <strong class="green-text" id="live-backend-status">
+        ● Checking…
+       </strong>
+      </div>
+      <div class="sys-row">
+       <span>
+        Database
+       </span>
+       <strong class="blue-text" id="live-database-status">
+        ● Checking…
+       </strong>
+      </div>
+      <div class="sys-row">
+       <span>
+        MQTT Broker
+       </span>
+       <strong class="green-text" id="live-mqtt-status">
+        ● Checking…
+       </strong>
+      </div>
+     </div>
+    </div>
+   </aside>
+   <!--  Main Content  -->
+   <main class="main-content">
+    <!-- Top Header-->
+    <header class="top-header">
+     <div class="header-left">
+      <button class="mobile-toggle-btn" id="mobile-menu-btn">
+       <i data-lucide="menu">
+       </i>
+      </button>
+      <div class="lab-selector-wrapper">
+       <select class="lab-dropdown-select" id="lab-select-dropdown">
+        <option value="">
+         Loading rooms…
+        </option>
+       </select>
+       <i data-lucide="chevron-down" style="width: 12px; height: 12px; margin-left: 4px;">
+       </i>
+      </div>
+     </div>
+     <div class="header-right-group">
+      <button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+       <i data-lucide="moon">
+       </i>
+      </button>
+      <button class="icon-btn">
+       <i data-lucide="bell">
+       </i>
+      </button>
+      <div class="user-profile">
+       <div class="user-info">
+        <strong id="live-header-username">
+         Loading account…
+        </strong>
+        <small id="live-header-account-state">
+         Authenticated session
+        </small>
+       </div>
+       <div class="avatar">
+        <span id="live-header-avatar">
+         CX
+        </span>
+       </div>
+      </div>
+     </div>
+    </header>
+    <!-- Control Panel Page Title Banner -->
+    <div class="page-title-banner">
+     <div>
+      <div class="title-with-badge">
+       <i class="blue-text" data-lucide="sliders" style="width: 20px; height: 20px;">
+       </i>
+       <h1>
+        HVAC &amp; Lab Control Panel
+       </h1>
+      </div>
+      <p class="subtitle-text">
+       Live environmental telemetry, occupancy data, configurable alert thresholds, and acknowledged device commands.
+      </p>
+     </div>
+     <div class="banner-actions">
+      <div class="lab-select-inline">
+       <small>
+        ZONE:
+       </small>
+       <select class="settings-select" id="control-room-dropdown">
+        <option value="">
+         Loading rooms…
+        </option>
+       </select>
+      </div>
+      <span class="status-pill-green" id="control-health-label">
+       ● Checking Backend
+      </span>
+      <span class="latency-tag" id="control-mqtt-label">
+       MQTT: Checking…
+      </span>
+      <button class="btn-secondary-sm" id="control-refresh">
+       <i data-lucide="refresh-cw">
+       </i>
+       Refresh Data
+      </button>
+     </div>
+    </div>
+    <!-- Top Grid: Temperature & Fan Control & Computer Vision (Occupancy) -->
+    <div class="ctrl-top-grid">
+     <!-- Temperature & Fan Control Card -->
+     <div class="ctrl-card">
+      <div class="card-header-bar">
+       <div class="header-title-group">
+        <i class="blue-text" data-lucide="thermometer">
+        </i>
+        <div>
+         <h3>
+          Temperature &amp; Fan Control
+         </h3>
+         <p>
+          Environmental thermal regulation loop
+         </p>
+        </div>
+       </div>
+       <span class="pill-badge-green" id="control-temperature-state">
+        ● LIVE TELEMETRY
+       </span>
+      </div>
+      <div class="ctrl-body-split">
+       <div class="temp-display-side">
+        <small>
+         CURRENT TEMP
+        </small>
+        <div class="big-val" id="control-temperature-value">
+         — °C
+        </div>
+        <span id="control-temperature-meta">
+         Waiting for latest temperature reading.
+        </span>
+       </div>
+       <div class="fan-actuator-side">
+        <small>
+         Fan / Relay Device
+        </small>
+        <select aria-label="Select Relay device" class="settings-select" id="control-relay-select">
+         <option value="">
+          Loading relay devices…
+         </option>
+        </select>
+        <span class="pill-badge-green" id="control-relay-state" style="margin-left: auto;">
+         ● STATE UNKNOWN
+        </span>
+        <div class="fan-toggle-wrapper">
+         <button aria-label="Toggle fan relay" class="fan-power-btn" id="control-relay-toggle" type="button">
+          <i class="spin-icon" data-lucide="fan">
+          </i>
+         </button>
+        </div>
+        <p class="click-hint" id="control-relay-hint">
+         Select a registered Relay and wait for device acknowledgement.
+        </p>
+       </div>
+      </div>
+      <div class="sub-metrics-3row margin-top-12">
+       <div>
+        <small>
+         Humidity
+        </small>
+        <strong id="control-humidity-value">
+         —
+        </strong>
+       </div>
+       <div>
+        <small>
+         CO₂
+        </small>
+        <strong id="control-co2-value">
+         —
+        </strong>
+       </div>
+       <div>
+        <small>
+         Last telemetry
+        </small>
+        <strong id="control-last-telemetry">
+         Waiting…
+        </strong>
+       </div>
+      </div>
+     </div>
+          <!-- Computer Vision Service Control Card -->
+     <div class="ctrl-card cv-manager-card" id="control-cv-manager">
+      <div class="cv-manager-head">
+       <div class="cv-manager-heading">
+        <i data-lucide="scan-eye"></i>
+        <div>
+         <h3>Computer Vision Service</h3>
+         <p>Start or stop the camera service and CampusX MQTT Bridge.</p>
+        </div>
+       </div>
+       <span class="cv-manager-state is-checking" id="control-cv-manager-state" role="status" aria-live="polite">CHECKING</span>
+      </div>
+      <div class="cv-manager-status-grid">
+       <div class="cv-manager-status-item"><span>Camera service</span><strong id="control-cv-camera-state">Checkingâ€¦</strong></div>
+       <div class="cv-manager-status-item"><span>MQTT Bridge</span><strong id="control-cv-bridge-state">Checkingâ€¦</strong></div>
+       <div class="cv-manager-status-item"><span>Live camera count</span><strong id="control-cv-live-count">â€”</strong></div>
+       <div class="cv-manager-status-item"><span>YOLO inference</span><strong id="control-cv-inference">â€”</strong></div>
+      </div>
+      <div class="cv-manager-actions">
+       <button class="btn-primary-sm" id="control-cv-start" type="button"><i data-lucide="play"></i>Start Computer Vision</button>
+       <button class="btn-secondary-sm" id="control-cv-stop" type="button" disabled><i data-lucide="square"></i>Stop</button>
+       <a class="btn-secondary-sm is-disabled" id="control-cv-preview" href="http://127.0.0.1:5000/" target="_blank" rel="noopener" aria-disabled="true"><i data-lucide="video"></i>Open Preview</a>
+       <span class="cv-manager-updated" id="control-cv-checked">Status refreshes every 10 seconds</span>
+      </div>
+      <p class="cv-manager-note">Start runs web_count_campusx.py and mqtt_bridge.py on the CampusX host. Stop closes these two processes only; Node.js and Mosquitto stay running.</p>
+     </div>
+    </div>
+
+    <!-- Computer Vision Occupancy + Automation Card -->
+    <div class="ctrl-card cv-occupancy-card cv-occupancy-full" id="control-cv-card">
+      <div class="card-header-bar cv-card-header">
+       <div class="header-title-group">
+        <i class="blue-text" data-lucide="users"></i>
+        <div>
+         <h3>Computer Vision آ· Room Occupancy</h3>
+         <p>Latest detected people count and occupancy-based device automation</p>
+        </div>
+       </div>
+       <span class="pill-badge-blue cv-live-badge" id="control-cv-state">â—ڈ CHECKING CAMERA DATA</span>
+      </div>
+      <div class="cv-occupancy-layout">
+       <section class="cv-count-panel" aria-label="Current people count">
+        <div class="cv-count-label"><i data-lucide="users"></i><span>PEOPLE DETECTED NOW</span></div>
+        <div class="headcount-num" id="control-current-count">â€”</div>
+        <div class="cv-count-caption">Latest camera detection آ· not daily entries</div>
+        <div class="cv-count-footnote" id="control-occupancy-footer">Waiting for the first camera reading.</div>
+       </section>
+       <section class="cv-occupancy-details" aria-label="Occupancy details">
+        <div class="cv-info-tile"><span class="cv-tile-icon"><i data-lucide="map-pin"></i></span><div class="cv-tile-copy"><small>SELECTED ROOM</small><strong id="control-cv-room-code">â€”</strong><span id="control-cv-room-name">Room not selected</span></div></div>
+        <div class="cv-info-tile"><span class="cv-tile-icon"><i data-lucide="users-round"></i></span><div class="cv-tile-copy"><small>ROOM CAPACITY</small><strong id="control-capacity-label">Not configured</strong><span>Maximum people</span></div></div>
+        <div class="cv-info-tile"><span class="cv-tile-icon"><i data-lucide="chart-no-axes-column-increasing"></i></span><div class="cv-tile-copy"><small>CAPACITY USED</small><strong id="control-capacity-percent">â€”</strong><span>Based on configured room capacity</span></div></div>
+        <div class="cv-info-tile"><span class="cv-tile-icon"><i data-lucide="armchair"></i></span><div class="cv-tile-copy"><small>AVAILABLE PLACES</small><strong id="control-cv-remaining">â€”</strong><span>Calculated from latest count</span></div></div>
+       </section>
+      </div>
+      <div class="cv-capacity-section">
+       <div class="cv-capacity-heading"><span>Room occupancy</span><span id="control-cv-capacity-summary">Capacity not configured</span></div>
+       <div class="occupancy-progress-bar cv-progress-track"><div class="progress-fill" id="control-capacity-fill" style="width:0%"></div></div>
+      </div>
+      <div class="cv-card-footer">
+       <div class="cv-source-meta">
+        <span><i data-lucide="camera"></i><span id="control-cv-device-label">CV device</span></span>
+        <span><i data-lucide="clock-3"></i>Last reading: <strong id="control-cv-last-seen">â€”</strong></span>
+       </div>
+       <div class="cv-card-actions">
+        <button class="btn-secondary-xs" id="control-set-capacity" type="button"><i data-lucide="sliders"></i>Set Capacity</button>
+        <a class="btn-secondary-xs" href="http://127.0.0.1:5000/" id="control-camera-preview" rel="noopener" target="_blank"><i data-lucide="external-link"></i>Camera Preview</a>
+       </div>
+      </div>
+
+      <section class="cv-automation-panel" id="control-occupancy-automation" aria-label="Occupancy automation settings">
+       <div class="cv-automation-head">
+        <div class="cv-automation-headline">
+         <i data-lucide="workflow"></i>
+         <div>
+          <h4 class="cv-automation-title">Occupancy Automation</h4>
+          <p class="cv-automation-subtitle">Send ON/OFF commands to the selected real relay devices using fresh people_count telemetry.</p>
+         </div>
+        </div>
+        <div class="cv-automation-status-line">
+         <label class="cv-automation-toggle"><input id="control-occupancy-auto-enabled" type="checkbox"> Enable automation</label>
+         <span class="cv-automation-state" id="control-occupancy-auto-state">DISABLED</span>
+        </div>
+       </div>
+       <div class="cv-automation-grid">
+        <label class="cv-automation-field">Turn OFF when people count is at or below
+         <input id="control-occupancy-off-threshold" type="number" min="0" max="500" step="1" value="3">
+        </label>
+        <label class="cv-automation-field">Condition must stay true for (seconds)
+         <input id="control-occupancy-off-delay" type="number" min="5" max="3600" step="5" value="30">
+        </label>
+        <label class="cv-automation-field">Fan output device
+         <select id="control-occupancy-fan-device"><option value="">Loading actuator devicesâ€¦</option></select>
+        </label>
+        <label class="cv-automation-field">Light output device
+         <select id="control-occupancy-light-device"><option value="">Loading actuator devicesâ€¦</option></select>
+        </label>
+       </div>
+       <div class="cv-automation-output-states" aria-label="Confirmed actuator states stored in SQL Server">
+        <div class="cv-output-state"><span>Fan relay آ· server-confirmed state</span><strong id="control-occupancy-fan-state">â€”</strong></div>
+        <div class="cv-output-state"><span>Light relay آ· server-confirmed state</span><strong id="control-occupancy-light-state">â€”</strong></div>
+       </div>
+       <div class="cv-automation-actions">
+        <label class="cv-automation-restore"><input id="control-occupancy-auto-restore" type="checkbox" checked> Turn devices ON again when people count rises above the threshold</label>
+        <button class="cv-automation-save" id="control-occupancy-automation-save" type="button"><i data-lucide="save"></i>Save Automation</button>
+       </div>
+       <p class="cv-automation-message" id="control-occupancy-auto-help">Rule: 3 people or fewer for 30 seconds â†’ OFF. More than 3 people â†’ ON when automatic restore is enabled. Automation starts disabled.</p>
+       <p class="cv-automation-message" id="control-occupancy-auto-last-action" aria-live="polite">No automation action has been recorded yet.</p>
+      </section>
+    </div>
+    <!-- Bottom Grid: Threshold Settings & Command Execution Status -->
+    <div class="ctrl-bottom-grid margin-top-20">
+     <!-- Threshold Settings Card -->
+     <div class="ctrl-card">
+      <div class="card-header-bar">
+       <div class="header-title-group">
+        <i class="blue-text" data-lucide="shield-alert">
+        </i>
+        <div>
+         <h3>
+          Threshold Settings
+         </h3>
+         <p>
+          Threshold values loaded from CampusX Alert_Rules.
+         </p>
+        </div>
+       </div>
+       <span class="eeprom-badge" id="control-rules-status">
+        SQL SERVER ALERT RULES
+       </span>
+      </div>
+      <div class="threshold-inputs-grid">
+       <div class="thresh-box-v2">
+        <div class="thresh-top-line">
+         <small>
+          TEMPERATURE RULES
+         </small>
+         <i class="red-text" data-lucide="triangle-alert" style="width: 14px; height: 14px;">
+         </i>
+        </div>
+        <div class="thresh-input-group">
+         <input class="thresh-input" id="control-temperature-rules" readonly="True" type="text" value="Loading…"/>
+         <span>
+          °C
+         </span>
+        </div>
+        <small class="thresh-sub-text" id="control-temperature-rules-meta">
+         Reading configured rules…
+        </small>
+       </div>
+       <div class="thresh-box-v2">
+        <div class="thresh-top-line">
+         <small>
+          CO₂ RULES
+         </small>
+         <i class="purple-text" data-lucide="wind" style="width: 14px; height: 14px;">
+         </i>
+        </div>
+        <div class="thresh-input-group">
+         <input class="thresh-input" id="control-co2-rules" readonly="True" type="text" value="Loading…"/>
+         <span>
+          PPM
+         </span>
+        </div>
+        <small class="thresh-sub-text" id="control-co2-rules-meta">
+         Reading configured rules…
+        </small>
+       </div>
+      </div>
+      <div class="failsafe-note-v2">
+       <i class="blue-text" data-lucide="info" style="width: 14px; height: 14px;">
+       </i>
+       <span id="control-rules-note">
+        Rules are read from the database. No hardware threshold is changed from this display.
+       </span>
+      </div>
+      <div class="thresh-actions-footer">
+       <small id="control-rules-updated">
+        Alert rules are read-only on this page.
+       </small>
+       <button class="btn-secondary-sm" id="control-rules-refresh">
+        <i data-lucide="refresh-cw">
+        </i>
+        Refresh Rules
+       </button>
+      </div>
+     </div>
+     <!-- Command Execution Status Card -->
+     <div class="ctrl-card">
+      <div class="card-header-bar">
+       <div class="header-title-group">
+        <i class="blue-text" data-lucide="terminal">
+        </i>
+        <div>
+         <h3>
+          Command Activity &amp; Audit Log
+         </h3>
+         <p>
+          Recent commands from all CampusX users · Target device and room · Device acknowledgement
+         </p>
+        </div>
+       </div>
+       <span class="broker-live-tag" id="control-command-broker">
+        ● MQTT CHECKING
+       </span>
+      </div>
+      <div class="command-success-box" id="control-command-latest">
+       <i class="blue-text" data-lucide="clock" style="width:18px;height:18px">
+       </i>
+       <div class="cmd-text">
+        <strong id="control-command-latest-title">
+         Loading command history…
+        </strong>
+        <p id="control-command-latest-detail">
+         Waiting for latest command from CampusX.
+        </p>
+       </div>
+       <span class="target-node-tag" id="control-command-latest-status">
+        —
+       </span>
+      </div>
+      <div class="actuation-stream-box command-audit-box">
+       <div class="command-audit-heading">
+        <div>
+         <small>RECENT COMMANDS · ALL USERS</small>
+         <span id="control-command-count">Loading…</span>
+        </div>
+        <a class="command-audit-view-all" href="command-history.html">View All <span aria-hidden="true">→</span></a>
+       </div>
+       <div class="command-audit-table-wrap">
+        <table class="command-audit-table">
+         <thead>
+          <tr>
+           <th>Who sent it</th>
+           <th>Sent to</th>
+           <th>Command</th>
+           <th>Description</th>
+           <th>Sent at</th>
+           <th>Result</th>
+          </tr>
+         </thead>
+         <tbody id="control-command-list">
+          <tr><td colspan="6" class="command-audit-empty">Loading commands from CampusX…</td></tr>
+         </tbody>
+        </table>
+       </div>
+       <p class="command-audit-note">Showing the 7 most recent commands across all users and rooms. Older records without sender tracking are labelled as legacy records.</p>
+      </div>
+      <div class="card-footer-action">
+       <small id="control-command-topic">
+        MQTT command topic is selected per registered device.
+       </small>
+       <span class="qos-tag">
+        QoS 1
+       </span>
+      </div>
+     </div>
+    </div>
+   </main>
+  </div>
+  <script src="auth-client.js">
+  </script>
+  <script src="control-panel-live.js?v=20261031-cvrelay1">
+  </script>
+ </body>
+</html>

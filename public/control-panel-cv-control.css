@@ -1,0 +1,91 @@
+/* Computer Vision process control card for the Control Panel top two-column grid. */
+.cv-manager-card {
+  min-width: 0;
+  justify-content: flex-start;
+  gap: 16px;
+  min-height: 100%;
+}
+.cv-manager-card .cv-manager-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.cv-manager-card .cv-manager-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  min-width: 0;
+}
+.cv-manager-card .cv-manager-heading > i { color: #60a5fa; width: 21px; height: 21px; flex: 0 0 auto; }
+.cv-manager-card .cv-manager-heading h3 { margin: 0; color: var(--text-primary, #eaf2ff); font-size: 15px; font-weight: 750; }
+.cv-manager-card .cv-manager-heading p { margin: 4px 0 0; color: var(--text-muted, #94a9c3); font-size: 11px; line-height: 1.45; }
+.cv-manager-state {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,.24);
+  background: rgba(148,163,184,.10);
+  color: #aab8c8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+.cv-manager-state::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.cv-manager-state.is-running { color: #86efac; background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.25); }
+.cv-manager-state.is-partial { color: #fbbf24; background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.25); }
+.cv-manager-state.is-stopped { color: #fca5a5; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.2); }
+.cv-manager-state.is-checking { color: #93c5fd; }
+.cv-manager-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.cv-manager-status-item {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(148,163,184,.14);
+  border-radius: 10px;
+  background: rgba(8,18,31,.68);
+}
+.cv-manager-status-item span { display: block; color: #8fa5bf; font-size: 9px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.cv-manager-status-item strong { display: block; margin-top: 5px; color: #edf5ff; font-size: 14px; font-weight: 750; overflow-wrap: anywhere; }
+.cv-manager-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.cv-manager-actions button, .cv-manager-actions a { display: inline-flex; align-items: center; justify-content: center; gap: 7px; text-decoration: none; min-height: 34px; }
+.cv-manager-actions svg { width: 13px; height: 13px; }
+.cv-manager-actions button:disabled, .cv-manager-actions a.is-disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+.cv-manager-updated { margin-left: auto; color: var(--text-muted, #8fa5bf); font-size: 9px; }
+.cv-manager-note { margin: 0; color: var(--text-muted, #8fa5bf); font-size: 10px; line-height: 1.5; }
+.cv-occupancy-full { width: 100%; margin-top: 18px; }
+@media (max-width: 900px) {
+  .cv-manager-card { min-height: auto; }
+}
+@media (max-width: 620px) {
+  .cv-manager-card .cv-manager-head { flex-direction: column; }
+  .cv-manager-actions { align-items: stretch; }
+  .cv-manager-actions button, .cv-manager-actions a { flex: 1 1 100%; }
+  .cv-manager-updated { width: 100%; margin-left: 0; }
+}
+.cv-automation-output-states {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.cv-output-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(148,163,184,.16);
+  border-radius: 9px;
+  background: rgba(8,18,31,.55);
+}
+.cv-output-state span { color: #93a9c2; font-size: 10px; line-height: 1.4; }
+.cv-output-state strong { color: #e6f1ff; font-size: 10px; font-weight: 800; letter-spacing: .05em; white-space: nowrap; }
+@media (max-width: 620px) { .cv-automation-output-states { grid-template-columns: 1fr; } }

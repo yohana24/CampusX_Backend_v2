@@ -1,0 +1,23 @@
+# 1) Add this import near the other route imports in src/app.js:
+const dashboardAccountRoutes = require('./routes/dashboardAccount');
+
+# 2) The auth middleware import must use the function (not the old constant):
+# Replace `AUTH_CONFIGURED,` with `isAuthConfigured,`
+
+# 3) The existing login page route should check the function:
+# Replace:
+#   if (AUTH_CONFIGURED && req.dashboardUser) return res.redirect('/dashboard');
+# With:
+#   if (isAuthConfigured() && req.dashboardUser) return res.redirect('/dashboard');
+
+# 4) The root route should check the function:
+# Replace:
+#   if (!AUTH_CONFIGURED || !req.dashboardUser) return res.redirect('/login.html');
+# With:
+#   if (!isAuthConfigured() || !req.dashboardUser) return res.redirect('/login.html');
+
+# 5) Immediately after the existing app.get('/auth/session', sessionHandler);
+# add:
+app.use('/auth', dashboardAccountRoutes);
+
+# Keep the existing /api/v1 routes, static files, dashboard pages and security middleware.

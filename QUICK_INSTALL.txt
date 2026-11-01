@@ -1,0 +1,15 @@
+QUICK INSTALL (Windows)
+
+1) Backup current files; stop npm start with Ctrl+C.
+2) Copy public/index.html, public/dashboard-app.js, public/dashboard-live.css from this patch into your project's public folder.
+3) Copy src/routes/computerVision.js to project's src/routes/.
+4) Copy src/services/computerVisionManager.js to project's src/services/ (create folder if absent).
+5) Copy both PowerShell scripts into project's computer-vision folder.
+6) In src/app.js:
+   - add: const computerVisionRouter = require('./routes/computerVision');
+   - before app.use('/api/v1', requireDashboardApi, apiKeyGuard, apiRouter); add:
+     app.use('/api/v1/computer-vision', requireDashboardApi, apiKeyGuard, computerVisionRouter);
+7) Restart with npm start.
+8) Login, open Home Dashboard, use Start / Stop buttons.
+
+Do not replace .env, computer-vision/.env, .venv, or your teammate's original CV files.

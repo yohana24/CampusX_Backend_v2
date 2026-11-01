@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html data-theme="dark" dir="ltr" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Campus X - Telemetry Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="style.css" rel="stylesheet"/>
+<link href="dashboard-live.css?v=cv-controls-1" rel="stylesheet"/>
+<link href="auth-login.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="dashboard-ui-refresh.css?v=20261031">
+</head>
+<body>
+<div class="app-container">
+<!--  Sidebar  -->
+<aside class="sidebar">
+<div class="logo-section">
+<i class="logo-icon" data-lucide="radio"></i>
+<div class="logo-text">
+<h2>Campus X</h2>
+<span>TELEMETRY HUB</span>
+</div>
+</div>
+<nav class="sidebar-nav">
+        <a class="nav-item active" href="index.html" aria-current="page"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        <a class="nav-item" href="labs.html"><i data-lucide="building-2"></i><span>Labs</span></a>
+        <a class="nav-item" href="devices.html"><i data-lucide="cpu"></i><span>Devices</span></a>
+        <a class="nav-item" href="alerts.html"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a class="nav-item" href="control-panel.html"><i data-lucide="sliders-horizontal"></i><span>Control Panel</span></a>
+        <a class="nav-item" href="command-history.html"><i data-lucide="history"></i><span>Command History</span></a>
+        <a class="nav-item" href="settings.html"><i data-lucide="settings"></i><span>Settings</span></a>
+</nav>
+<div class="sidebar-footer">
+<div class="system-status-box">
+<small>SYSTEM STATUS</small>
+<div class="sys-row"><span>Server</span> <strong class="green-text">● Live</strong></div>
+<div class="sys-row"><span>Database</span> <strong class="blue-text">● Active</strong></div>
+<div class="sys-row"><span>MQTT Broker</span> <strong class="green-text">● Online</strong></div>
+</div>
+</div>
+</aside>
+<!--  Main Content  -->
+<main class="main-content">
+<!-- Top Header -->
+<header class="top-header">
+<div class="header-left">
+<button class="mobile-toggle-btn" id="mobile-menu-btn"><i data-lucide="menu"></i></button>
+<div class="lab-selector-wrapper">
+<i data-lucide="flask-conical"></i>
+<select class="lab-dropdown-select" id="lab-select-dropdown">
+<option selected="" value="lab1">Lab 1 - Main Room</option>
+<option value="lab2">Lab 2 - Electronics Wing</option>
+<option value="lab3">Lab 3 - Chemistry Suite</option>
+<option value="lab4">Lab 4 - Cleanroom</option>
+</select>
+<i data-lucide="chevron-down" style="width: 12px; height: 12px; margin-left: 4px;"></i>
+</div>
+</div>
+<div class="header-right-group">
+<button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+<i data-lucide="moon"></i>
+</button>
+<button class="icon-btn"><i data-lucide="bell"></i></button>
+<div class="user-profile">
+<div class="user-info">
+<strong>CampusX Operator</strong>
+<small>Local Dashboard</small>
+</div>
+<div class="avatar"><i data-lucide="user"></i></div>
+</div>
+</div>
+</header>
+<!--  Top 4 Metric KPI Cards (4 Labs Updated)  -->
+<div class="kpi-grid-4">
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>TOTAL DEVICES</span>
+<i class="kpi-icon blue" data-lucide="cpu"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text">
+                        Total Registered Nodes<br/>
+<span>Edge Firmware v3.4.1</span>
+</div>
+<div class="kpi-pill-right blue-text">Loading CampusX data…</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>TOTAL LABS</span>
+<i class="kpi-icon green" data-lucide="flask-conical"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text">
+                        Active Connected Units<br/>
+<span>BSL-2 • Cleanroom • Physics • Chem</span>
+</div>
+<div class="kpi-pill-right green-text">Loading CampusX data…</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>ACTIVE ALERTS</span>
+<i class="kpi-icon red" data-lucide="triangle-alert"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number red-text">—</div>
+</div>
+<div class="kpi-v2-footer-text">
+                        Pending Lab Alerts<br/>
+<strong class="red-text">Action Required (Lab 1)</strong>
+</div>
+<div class="kpi-pill-right red-text text-right">Loading CampusX data…</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>AVG TEMPERATURE</span>
+<i class="kpi-icon purple" data-lucide="thermometer"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text">
+                        Composite Node Health<br/>
+<span>Packet Ingestion: 99.98%</span>
+</div>
+<div class="kpi-pill-right blue-text text-right">Loading CampusX data…</div>
+</div>
+</div>
+<!-- CampusX Computer Vision process controls -->
+<section class="cx-cv-manager card" id="cx-cv-manager" aria-labelledby="cx-cv-title">
+  <div class="cx-cv-manager-header">
+    <div class="cx-cv-manager-title">
+      <span class="cx-cv-manager-icon"><i data-lucide="scan-eye"></i></span>
+      <div>
+        <h3 id="cx-cv-title">Computer Vision Control</h3>
+        <p>Original Headcount camera service · LAB-01 · people-counter-lab-01</p>
+      </div>
+    </div>
+    <span class="cx-cv-state is-checking" id="cx-cv-state" role="status" aria-live="polite">
+      <span class="cx-cv-state-dot"></span><span id="cx-cv-state-text">Checking status…</span>
+    </span>
+  </div>
+  <div class="cx-cv-manager-status-grid">
+    <div class="cx-cv-status-item"><span>Camera service</span><strong id="cx-cv-camera-state">Checking…</strong></div>
+    <div class="cx-cv-status-item"><span>MQTT Bridge</span><strong id="cx-cv-bridge-state">Checking…</strong></div>
+    <div class="cx-cv-status-item"><span>Current people detected</span><strong id="cx-cv-people-count">—</strong></div>
+    <div class="cx-cv-status-item"><span>YOLO inference</span><strong id="cx-cv-inference">—</strong></div>
+  </div>
+  <div class="cx-cv-manager-actions">
+    <button type="button" class="btn-primary-sm" id="cx-cv-start"><i data-lucide="play"></i> Start Computer Vision</button>
+    <button type="button" class="btn-secondary-sm" id="cx-cv-stop" disabled><i data-lucide="square"></i> Stop</button>
+    <a class="btn-secondary-sm cx-cv-preview is-disabled" id="cx-cv-preview" href="http://127.0.0.1:5000/" target="_blank" rel="noopener" aria-disabled="true"><i data-lucide="video"></i> Open Camera Preview</a>
+    <span class="cx-cv-updated" id="cx-cv-updated">Status refreshes automatically</span>
+  </div>
+  <p class="cx-cv-manager-note">Starts or stops the Computer Vision and MQTT Bridge processes on the CampusX host. It does not stop Node.js, Mosquitto, or the physical camera hardware.</p>
+</section>
+<!--  Middle Section  -->
+<div class="dashboard-split-layout">
+<!-- Left Main Panel -->
+<div class="main-overview-panel">
+<div class="lab-overview-banner">
+<div class="banner-title-group">
+<i class="banner-icon" data-lucide="activity"></i>
+<div>
+<h2>Lab 1 - Main Room Overview <span class="primary-zone-tag">Primary Zone</span></h2>
+<p class="sub-meta">Waiting for live telemetry from CampusX…</p>
+</div>
+</div>
+<span class="normal-band-badge">● Checking live status…</span>
+</div>
+<div class="lab-metrics-3grid"><div class="cx-empty">Waiting for live sensor telemetry…</div></div>
+<!-- Temperature Chart Box -->
+<div class="chart-box-v2">
+<div class="chart-header-v2">
+<div>
+<h3>Temperature Trend (Last 24 Hours)</h3>
+<p>Continuous telemetry stream from calibrated thermal nodes</p>
+</div>
+<div class="min-max-avg-badges"><span>Waiting for temperature history…</span></div>
+</div>
+<div class="chart-canvas-container">
+<canvas id="dashboardTrendChart"></canvas>
+</div>
+</div>
+</div>
+<!-- Right Sidebar Panel -->
+<div class="right-widgets-panel">
+<!-- Recent Alerts Card -->
+<div class="card widget-box">
+<div class="widget-header">
+<div class="title-with-icon">
+<i class="red-text" data-lucide="bell"></i>
+<h3>Recent Alerts</h3>
+</div>
+<a class="active-feed-link" href="alerts.html">Active Feed</a>
+</div>
+<div class="recent-alerts-list"><div class="cx-empty">Loading active alerts from CampusX…</div></div>
+<div class="widget-footer-line">
+<span>Escalation protocol Level 2</span>
+<a class="view-all-btn" href="alerts.html">View All in Alerts Tab &gt;</a>
+</div>
+</div>
+<!-- Node Status Card -->
+<div class="card widget-box">
+<div class="widget-header">
+<div class="title-with-icon">
+<i class="blue-text" data-lucide="cpu"></i>
+<h3>Node Status</h3>
+</div>
+<span class="cluster-tag">Cluster Alpha</span>
+</div>
+<div class="nodes-list"><div class="cx-empty">Loading registered nodes…</div></div>
+<div class="node-footer-info">
+<span><i data-lucide="radio" style="width:12px;height:12px;"></i> Streaming Ingestion:</span>
+<strong>Waiting for telemetry…</strong>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Script file -->
+<script src="auth-client.js"></script>
+<script src="dashboard-app.js?v=cv-controls-1"></script>
+<script>
+        if (window.lucide) window.lucide.createIcons();
+    </script>
+</body>
+</html>

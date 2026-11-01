@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html data-theme="dark" dir="ltr" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Campus X - Device Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="style.css" rel="stylesheet"/>
+<link href="dashboard-live.css" rel="stylesheet"/>
+<link href="auth-login.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="dashboard-ui-refresh.css?v=20261031">
+</head>
+<body>
+<div class="app-container">
+<!-- Sidebar-->
+<aside class="sidebar">
+<div class="logo-section">
+<i class="logo-icon" data-lucide="radio"></i>
+<div class="logo-text">
+<h2>Campus X</h2>
+<span>TELEMETRY HUB</span>
+</div>
+</div>
+<nav class="sidebar-nav">
+        <a class="nav-item" href="index.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        <a class="nav-item" href="labs.html"><i data-lucide="building-2"></i><span>Labs</span></a>
+        <a class="nav-item active" href="devices.html" aria-current="page"><i data-lucide="cpu"></i><span>Devices</span></a>
+        <a class="nav-item" href="alerts.html"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a class="nav-item" href="control-panel.html"><i data-lucide="sliders-horizontal"></i><span>Control Panel</span></a>
+        <a class="nav-item" href="command-history.html"><i data-lucide="history"></i><span>Command History</span></a>
+        <a class="nav-item" href="settings.html"><i data-lucide="settings"></i><span>Settings</span></a>
+</nav>
+<div class="sidebar-footer">
+<div class="system-status-box">
+<small>SYSTEM STATUS</small>
+<div class="sys-row"><span>Server</span> <strong class="green-text">● Live</strong></div>
+<div class="sys-row"><span>Database</span> <strong class="blue-text">● Active</strong></div>
+<div class="sys-row"><span>MQTT Broker</span> <strong class="green-text">● Online</strong></div>
+</div>
+</div>
+</aside>
+<!-- Main Content  -->
+<main class="main-content">
+<!-- Top Header-->
+<header class="top-header">
+<div class="header-left">
+<button class="mobile-toggle-btn" id="mobile-menu-btn"><i data-lucide="menu"></i></button>
+<div class="lab-selector-wrapper">
+<select class="lab-dropdown-select" id="lab-select-dropdown">
+<option selected="" value="lab1">Lab 1 - Main Room</option>
+<option value="lab2">Lab 2 - Electronics Wing</option>
+<option value="lab3">Lab 3 - Chemistry Suite</option>
+<option value="lab4">Lab 4 - Cleanroom</option>
+</select>
+<i data-lucide="chevron-down" style="width: 12px; height: 12px; margin-left: 4px;"></i>
+</div>
+</div>
+<div class="header-right-group">
+<button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+<i data-lucide="moon"></i>
+</button>
+<button class="icon-btn"><i data-lucide="bell"></i></button>
+<div class="user-profile">
+<div class="user-info">
+<strong>CampusX Operator</strong>
+<small>Local Dashboard</small>
+</div>
+<div class="avatar"><i data-lucide="user"></i></div>
+</div>
+</div>
+</header>
+<!-- Device Management Page Title & Actions -->
+<div class="page-title-banner">
+<div>
+<div class="title-with-badge">
+<h1>Device Management</h1>
+<span class="ver-badge">v3.4.1</span>
+</div>
+<p class="subtitle-text">
+                        Real-time physical computing nodes, sensor health telemetry, and firmware provisioning. 
+                        <strong>NODES: 24 Registered</strong> • 20 Online • 4 Offline • 64 MQTT Synced - QoS 1
+                    </p>
+</div>
+<div class="banner-actions">
+<button class="btn-secondary-sm"><i data-lucide="download"></i> Export Inventory</button>
+<button class="btn-primary-sm"><i data-lucide="plus"></i> Add Device</button>
+</div>
+</div>
+<!-- Top 4 Metric KPI Cards -->
+<div class="kpi-grid-4" style="margin-bottom: 20px;">
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>ONLINE DEVICES</span>
+<i class="kpi-icon blue" data-lucide="wifi"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text">● Active telemetry stream</div>
+<div class="kpi-pill-right blue-text">Loading CampusX data…</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>OFFLINE / ATTENTION</span>
+<i class="kpi-icon red" data-lucide="triangle-alert"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number red-text">—</div>
+</div>
+<div class="kpi-v2-footer-text">● Needs attention in Lab 3</div>
+<div class="kpi-pill-right red-text">Loading CampusX data…</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>TELEMETRY ROWS · LAST 24H</span>
+<i class="kpi-icon blue" data-lucide="zap"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text">▲ +1,240 msg/sec ingress rate</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>ONLINE DEVICE RATIO</span>
+<i class="kpi-icon blue" data-lucide="activity"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text">Packet loss: &lt;0.02%</div>
+<div class="kpi-pill-right green-text">Loading CampusX data…</div>
+</div>
+</div>
+<!-- Table Filter Toolbar -->
+<div class="table-toolbar">
+<div class="search-box-wrapper" style="flex: 1; max-width: 320px;">
+<i class="search-icon" data-lucide="search"></i>
+<input class="search-input" placeholder="Filter by node name, ID, or sensor..." style="width: 100%;" type="text"/>
+</div>
+<div class="toolbar-right">
+<button class="filter-dropdown-btn"><i data-lucide="filter"></i> All Labs <i data-lucide="chevron-down"></i></button>
+<div class="tab-pills">
+<button class="tab-pill active">All (24)</button>
+<button class="tab-pill">Online (20)</button>
+<button class="tab-pill">Offline (4)</button>
+</div>
+<button class="icon-btn-sm"><i data-lucide="refresh-cw"></i></button>
+</div>
+</div>
+<!-- Devices Custom Table -->
+<div class="table-card-wrapper">
+<table class="custom-data-table">
+<thead>
+<tr>
+<th>DEVICE NAME</th>
+<th>TYPE</th>
+<th>LAB LOCATION</th>
+<th>STATUS</th>
+<th>LAST READING</th>
+<th>SIGNAL / BATTERY</th>
+<th>LAST SEEN</th>
+<th class="text-right">ACTIONS</th>
+</tr>
+</thead>
+<tbody><tr><td class="cx-empty-cell" colspan="8">Loading registered devices from CampusX…</td></tr></tbody>
+</table>
+<!-- Pagination & Stats Footer -->
+<div class="table-footer-pagination">
+<span>Showing 1 to 5 of 24 devices • Ingesting 1,240 msg/sec via Mosquitto Broker</span>
+<div class="pagination-controls">
+<button class="page-btn disabled">&lt; Previous</button>
+<button class="page-btn active">1</button>
+<button class="page-btn">2</button>
+<button class="page-btn">3</button>
+<button class="page-btn">Next &gt;</button>
+</div>
+</div>
+</div>
+<!-- Bottom 3 Info Cards -->
+<div class="bottom-info-3grid" style="margin-top: 20px;">
+<div class="info-card">
+<i class="blue-text" data-lucide="network"></i>
+<div>
+<small>NETWORK TOPOLOGY</small>
+<strong>Not reported by device inventory</strong>
+<p>Network topology data is not part of the current device API.</p>
+</div>
+</div>
+<div class="info-card">
+<i class="blue-text" data-lucide="refresh-cw"></i>
+<div>
+<small>FIRMWARE DISTRIBUTION</small>
+<strong>Firmware versions by Node</strong>
+<p>Shown when Nodes report FirmwareVersion.</p>
+</div>
+</div>
+<div class="info-card">
+<i class="green-text" data-lucide="shield-check"></i>
+<div>
+<small>DEVICE SECURITY</small>
+<strong>Security telemetry not configured</strong>
+<p>Certificate and mTLS status are not currently reported.</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script src="auth-client.js"></script>
+<script src="dashboard-app.js"></script>
+<script>
+        if (window.lucide) window.lucide.createIcons();
+    </script>
+</body>
+</html>

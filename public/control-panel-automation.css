@@ -1,0 +1,119 @@
+/* Scoped occupancy automation controls for CampusX Control Panel. */
+.cv-automation-panel {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(104, 151, 204, .22);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(25, 53, 82, .72), rgba(13, 29, 47, .82));
+  display: grid;
+  gap: 15px;
+}
+.cv-automation-head,
+.cv-automation-headline,
+.cv-automation-actions,
+.cv-automation-status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cv-automation-headline { justify-content: flex-start; }
+.cv-automation-headline > i { color: #60a5fa; width: 20px; height: 20px; }
+.cv-automation-title { margin: 0; font-size: 15px; font-weight: 750; color: var(--text-primary, #eaf2ff); }
+.cv-automation-subtitle { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--text-muted, #94a9c3); }
+.cv-automation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary, #eaf2ff);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cv-automation-toggle input,
+.cv-automation-restore input { accent-color: #3b82f6; width: 16px; height: 16px; }
+.cv-automation-state {
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  color: #9ca3af;
+  background: rgba(148, 163, 184, .12);
+  border: 1px solid rgba(148, 163, 184, .2);
+}
+.cv-automation-state.is-on { color: #86efac; background: rgba(34, 197, 94, .1); border-color: rgba(34, 197, 94, .25); }
+.cv-automation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.cv-automation-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  color: var(--text-muted, #a6b6ca);
+  font-size: 11px;
+  font-weight: 650;
+}
+.cv-automation-field input,
+.cv-automation-field select {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid rgba(126, 160, 199, .28);
+  border-radius: 9px;
+  outline: none;
+  color: var(--text-primary, #eaf2ff);
+  background: rgba(5, 17, 31, .62);
+  font: inherit;
+  font-size: 13px;
+}
+.cv-automation-field input:focus,
+.cv-automation-field select:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59, 130, 246, .13); }
+.cv-automation-field select option { color: #eaf2ff; background: #10243a; }
+.cv-automation-restore {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted, #a6b6ca);
+  font-size: 12px;
+  cursor: pointer;
+}
+.cv-automation-actions { justify-content: flex-end; flex-wrap: wrap; }
+.cv-automation-save {
+  min-height: 39px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cv-automation-save:disabled { opacity: .55; cursor: wait; }
+.cv-automation-message {
+  margin: 0;
+  color: var(--text-muted, #94a9c3);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.cv-automation-message.is-warning { color: #fbbf24; }
+.cv-automation-status-line { justify-content: flex-start; align-items: flex-start; }
+.cv-automation-status-line small { color: var(--text-muted, #94a9c3); font-size: 11px; line-height: 1.5; }
+@media (max-width: 1100px) {
+  .cv-automation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .cv-automation-panel { padding: 14px; }
+  .cv-automation-head { align-items: flex-start; flex-direction: column; }
+  .cv-automation-grid { grid-template-columns: 1fr; }
+  .cv-automation-actions { justify-content: stretch; }
+  .cv-automation-save { justify-content: center; width: 100%; }
+}

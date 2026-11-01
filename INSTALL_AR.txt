@@ -1,0 +1,10 @@
+1) Stop npm start (Ctrl+C).
+2) Backup src/app.js and public folder.
+3) Merge public/ into your backend public/ folder.
+4) Copy src/app.js to backend src/app.js.
+5) Copy src/middleware/dashboardAuth.js to backend src/middleware/.
+6) Copy scripts/create-dashboard-credentials.js and scripts/setup-dashboard-auth.ps1 to backend scripts/.
+7) In PowerShell at backend root run: Set-ExecutionPolicy -Scope Process Bypass
+8) Run: .\scripts\setup-dashboard-auth.ps1
+9) Copy the generated DASHBOARD_* lines into the root .env file. Do not share those secrets.
+10) Run npm start and open http://127.0.0.1:3000/ . Login is required before the dashboard.

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html data-theme="dark" dir="ltr" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Campus X - Alerts &amp; Notifications</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="style.css" rel="stylesheet"/>
+<link href="dashboard-live.css" rel="stylesheet"/>
+<link href="auth-login.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="dashboard-ui-refresh.css?v=20261031">
+</head>
+<body>
+<div class="app-container">
+<!--  Sidebar -->
+<aside class="sidebar">
+<div class="logo-section">
+<i class="logo-icon" data-lucide="radio"></i>
+<div class="logo-text">
+<h2>Campus X</h2>
+<span>TELEMETRY HUB</span>
+</div>
+</div>
+<nav class="sidebar-nav">
+        <a class="nav-item" href="index.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        <a class="nav-item" href="labs.html"><i data-lucide="building-2"></i><span>Labs</span></a>
+        <a class="nav-item" href="devices.html"><i data-lucide="cpu"></i><span>Devices</span></a>
+        <a class="nav-item active" href="alerts.html" aria-current="page"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a class="nav-item" href="control-panel.html"><i data-lucide="sliders-horizontal"></i><span>Control Panel</span></a>
+        <a class="nav-item" href="command-history.html"><i data-lucide="history"></i><span>Command History</span></a>
+        <a class="nav-item" href="settings.html"><i data-lucide="settings"></i><span>Settings</span></a>
+</nav>
+<div class="sidebar-footer">
+<div class="system-status-box">
+<small>SYSTEM STATUS</small>
+<div class="sys-row"><span>Server</span> <strong class="green-text">● Live</strong></div>
+<div class="sys-row"><span>Database</span> <strong class="blue-text">● Active</strong></div>
+<div class="sys-row"><span>MQTT Broker</span> <strong class="green-text">● Online</strong></div>
+</div>
+</div>
+</aside>
+<!--  Main Content -->
+<main class="main-content">
+<!-- Top Header -->
+<header class="top-header">
+<div class="header-left">
+<button class="mobile-toggle-btn" id="mobile-menu-btn"><i data-lucide="menu"></i></button>
+<div class="lab-selector-wrapper">
+<select class="lab-dropdown-select" id="lab-select-dropdown">
+<option selected="" value="lab1">Lab 1 - Main Room</option>
+<option value="lab2">Lab 2 - Electronics Wing</option>
+<option value="lab3">Lab 3 - Chemistry Suite</option>
+<option value="lab4">Lab 4 - Cleanroom</option>
+</select>
+<i data-lucide="chevron-down" style="width: 12px; height: 12px; margin-left: 4px;"></i>
+</div>
+</div>
+<div class="header-right-group">
+<button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+<i data-lucide="moon"></i>
+</button>
+<button class="icon-btn"><i data-lucide="bell"></i></button>
+<div class="user-profile">
+<div class="user-info">
+<strong>CampusX Operator</strong>
+<small>Local Dashboard</small>
+</div>
+<div class="avatar"><i data-lucide="user"></i></div>
+</div>
+</div>
+</header>
+<!-- Alerts Page Title Banner -->
+<div class="page-title-banner">
+<div>
+<div class="title-with-badge">
+<h1>Alerts &amp; Notifications</h1>
+<span class="red-pill-badge">5 ACTIVE ALERTS</span>
+<span class="mqtt-sync-tag">📡 Live alerts from CampusX</span>
+</div>
+<p class="subtitle-text">
+                        Real-time telemetry event triggers, threshold anomalies, and active incident response across campus IoT infrastructure.
+                    </p>
+</div>
+<div class="gateway-sentry-box">
+<small>GATEWAY SENTRY:</small>
+<strong>Alert rules evaluated by Backend</strong>
+</div>
+</div>
+<!-- Top 4 Metric KPI Cards -->
+<div class="kpi-grid-4" style="margin-bottom: 20px;">
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>CRITICAL ALERTS</span>
+<i class="kpi-icon red" data-lucide="shield-alert"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number red-text">—</div>
+</div>
+<div class="kpi-v2-footer-text red-text">Active +1 in last 2h</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>WARNING ALERTS</span>
+<i class="kpi-icon purple" data-lucide="triangle-alert"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text">Detected HVAC &amp; Power</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>INFO ALERTS</span>
+<i class="kpi-icon blue" data-lucide="info"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text">Events Node connectivity</div>
+</div>
+<div class="kpi-card-v2">
+<div class="kpi-v2-header">
+<span>RESOLUTION TIME</span>
+<i class="kpi-icon blue" data-lucide="clock"></i>
+</div>
+<div class="kpi-v2-body">
+<div class="val-number">—</div>
+</div>
+<div class="kpi-v2-footer-text green-text">↓ 18% vs avg</div>
+</div>
+</div>
+<!-- Table Filter Toolbar -->
+<div class="table-toolbar">
+<div class="tab-pills">
+<button class="tab-pill active">All (5)</button>
+<button class="tab-pill">Critical 1</button>
+<button class="tab-pill">Warning 2</button>
+<button class="tab-pill">Info 2</button>
+</div>
+<div class="toolbar-right">
+<button class="filter-dropdown-btn"><i data-lucide="map-pin"></i> All Lab Locations <i data-lucide="chevron-down"></i></button>
+<button class="btn-secondary-sm"><i data-lucide="download"></i> Export Logs</button>
+<button class="btn-secondary-sm"><i data-lucide="check-check"></i> Mark all as read</button>
+</div>
+</div>
+<!-- Alerts Custom Table -->
+<div class="table-card-wrapper">
+<table class="custom-data-table">
+<thead>
+<tr>
+<th>SEVERITY</th>
+<th>ALERT NAME</th>
+<th>LAB LOCATION</th>
+<th>DESCRIPTION</th>
+<th>TIME</th>
+<th class="text-right">ACTIONS</th>
+</tr>
+</thead>
+<tbody><tr><td class="cx-empty-cell" colspan="6">Loading alert history from CampusX…</td></tr></tbody>
+</table>
+<!-- Pagination & Stats Footer -->
+<div class="table-footer-pagination">
+<span>Showing 1-3 of 5 active alerts • Real-time MQTT stream synced (24ms latency)</span>
+<div class="pagination-controls">
+<button class="page-btn disabled">&lt; Previous</button>
+<button class="page-btn active">1</button>
+<button class="page-btn">2</button>
+<button class="page-btn">Next &gt;</button>
+</div>
+</div>
+</div>
+<!-- Bottom 3 Info Cards -->
+<div class="bottom-info-3grid" style="margin-top: 20px;">
+<div class="info-card">
+<i class="blue-text" data-lucide="radio"></i>
+<div>
+<small>MQTT TELEMETRY TOPIC</small>
+<strong>smart-campus/telemetry</strong>
+</div>
+</div>
+<div class="info-card">
+<i class="purple-text" data-lucide="shield-alert"></i>
+<div>
+<small>ALERT RULES</small>
+<strong>Rules stored in SQL Server</strong>
+</div>
+</div>
+<div class="info-card">
+<i class="blue-text" data-lucide="database"></i>
+<div>
+<small>ALERT HISTORY</small>
+<strong>Stored in CampusX SQL Server</strong>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script src="auth-client.js"></script>
+<script src="dashboard-app.js"></script>
+<script>
+        if (window.lucide) window.lucide.createIcons();
+    </script>
+</body>
+</html>

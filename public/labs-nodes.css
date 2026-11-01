@@ -1,0 +1,44 @@
+/* Node management section for the Labs detail panel. */
+.labs-nodes-section{padding-top:15px;border-top:1px solid rgba(148,163,184,.12)}
+.labs-nodes-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.labs-nodes-heading h4{display:flex;align-items:center;gap:7px;margin:0;color:#dceaff;font-size:11px}
+.labs-nodes-heading h4>svg{width:14px;height:14px;color:#7dbaff}
+.labs-nodes-count{padding:4px 7px;border:1px solid rgba(96,165,250,.16);border-radius:20px;background:rgba(59,130,246,.08);color:#9fcaff;font-size:8px;font-weight:700}
+.labs-node-add-button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 10px;border:1px solid rgba(96,165,250,.27);border-radius:8px;background:rgba(37,99,235,.12);color:#b9d9ff;font:700 9px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.labs-node-add-button:hover{background:rgba(37,99,235,.22)}
+.labs-node-add-button svg{width:12px;height:12px}
+.labs-nodes-list{display:grid;gap:7px}
+.labs-node-row{display:flex;align-items:center;gap:9px;min-width:0;padding:10px;border:1px solid rgba(148,163,184,.11);border-radius:10px;background:rgba(148,163,184,.035)}
+.labs-node-icon{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:9px;background:rgba(59,130,246,.12);color:#80baff}
+.labs-node-icon svg{width:15px;height:15px}
+.labs-node-main{display:grid;gap:3px;min-width:0;flex:1}
+.labs-node-main strong{overflow:hidden;color:#e3efff;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.labs-node-main small{overflow:hidden;color:#8296af;font-size:8px;text-overflow:ellipsis;white-space:nowrap}
+.labs-node-status{flex:0 0 auto;padding:5px 7px;border-radius:20px;font-size:8px;font-weight:800;text-transform:uppercase}
+.labs-node-status.active{background:rgba(16,185,129,.10);color:#6ee7b7}
+.labs-node-status.inactive{background:rgba(148,163,184,.10);color:#a7b4c5}
+.labs-nodes-empty,.labs-nodes-loading,.labs-nodes-error{padding:12px;border:1px dashed rgba(148,163,184,.17);border-radius:10px;color:#879bb3;font-size:9px;line-height:1.55;text-align:center}
+.labs-nodes-error{border-color:rgba(248,113,113,.22);background:rgba(127,29,29,.10);color:#fecaca}
+.labs-node-form{margin-top:10px;padding:12px;border:1px solid rgba(96,165,250,.20);border-radius:11px;background:rgba(37,99,235,.055)}
+.labs-node-form[hidden]{display:none}
+.labs-node-form-title{display:grid;gap:3px;margin-bottom:10px}
+.labs-node-form-title strong{color:#e3efff;font-size:10px}
+.labs-node-form-title small{color:#8296af;font-size:8px}
+.labs-node-fields{display:grid;grid-template-columns:1.15fr 1fr .85fr;gap:9px}
+.labs-node-fields label{display:grid;gap:5px;min-width:0}
+.labs-node-fields label>span{color:#a8bad0;font-size:8px;font-weight:700}
+.labs-node-fields label b{color:#fca5a5}
+.labs-node-fields input,.labs-node-fields select{width:100%;min-width:0;height:34px;padding:0 9px;border:1px solid rgba(148,163,184,.19);border-radius:8px;outline:none;background:#0d1a2b;color:#e8f2ff;font:500 9px Inter,sans-serif}
+.labs-node-fields input:focus,.labs-node-fields select:focus{border-color:rgba(96,165,250,.6);box-shadow:0 0 0 2px rgba(59,130,246,.10)}
+.labs-node-form-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}
+.labs-node-form-hint{color:#8296af;font-size:8px;line-height:1.45}
+.labs-node-form-actions{display:flex;gap:7px;flex:0 0 auto}
+.labs-node-cancel,.labs-node-save{min-height:31px;padding:0 11px;border-radius:8px;font:700 9px Inter,sans-serif;cursor:pointer}
+.labs-node-cancel{border:1px solid rgba(148,163,184,.18);background:rgba(148,163,184,.06);color:#b7c5d6}
+.labs-node-save{border:1px solid rgba(96,165,250,.32);background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff}
+.labs-node-save:disabled{opacity:.55;cursor:wait}
+.labs-node-feedback{margin-top:9px;padding:8px 9px;border:1px solid rgba(96,165,250,.18);border-radius:8px;background:rgba(37,99,235,.08);color:#bfdbfe;font-size:8px;line-height:1.5}
+.labs-node-feedback[hidden]{display:none}
+.labs-node-feedback.success{border-color:rgba(52,211,153,.22);background:rgba(16,185,129,.08);color:#a7f3d0}
+.labs-node-feedback.error{border-color:rgba(248,113,113,.24);background:rgba(127,29,29,.13);color:#fecaca}
+@media(max-width:720px){.labs-node-fields{grid-template-columns:1fr}.labs-node-form-footer{align-items:flex-start;flex-direction:column}.labs-node-form-actions{width:100%;justify-content:flex-end}}
