@@ -1,7 +1,8 @@
 'use strict';
 
-const { sql, pool } = require('../db/sqlserver');
+const { sql, getPool } = require('../db/sqlserver');
 const env = require('../config/env');
+const { deviceCodeFromTopic } = require('../utils/mqttTopics');
 const { evaluateMetricRules } = require('./alertEngine');
 const { emitData } = require('./eventHub');
 
@@ -48,11 +49,11 @@ function prepareStoredValue(metric, value) {
 
 async function processTelemetryMessage(topic, rawMessage) {
   const data = parsePayload(rawMessage);
-  const topicMatch = /^smart-campus\/devices\/([^/]+)\/telemetry$/.exec(topic);
+  const topicDeviceCode = deviceCodeFromTopic(topic, env.deviceTelemetryTopic);
   const defaultDeviceCode = (typeof data.device_id === 'string' && data.device_id.trim())
     || (typeof data.deviceCode === 'string' && data.deviceCode.trim())
     || (typeof data.device_code === 'string' && data.device_code.trim())
-    || (topicMatch && decodeURIComponent(topicMatch[1]))
+    || topicDeviceCode
     || null;
   const nodeCode = typeof data.node_code === 'string' && data.node_code.trim() ? data.node_code.trim() : null;
 
@@ -67,10 +68,19 @@ async function processTelemetryMessage(topic, rawMessage) {
   const messageId = typeof data.message_id === 'string' && data.message_id.trim()
     ? data.message_id.trim().slice(0, 100)
     : (typeof data.messageId === 'string' && data.messageId.trim() ? data.messageId.trim().slice(0, 100) : null);
-  const recordedAt = data.recorded_at && !Number.isNaN(Date.parse(data.recorded_at))
-    ? new Date(data.recorded_at)
-    : (data.timestamp && !Number.isNaN(Date.parse(data.timestamp)) ? new Date(data.timestamp) : new Date());
+  const parsedRecordedAt = data.recorded_at && !Number.isNaN(Date.parse(data.recorded_at))
+    ? Date.parse(data.recorded_at)
+    : (data.timestamp && !Number.isNaN(Date.parse(data.timestamp)) ? Date.parse(data.timestamp) : Date.now());
+  const now = Date.now();
+  if (parsedRecordedAt > now + env.telemetryMaxFutureSeconds * 1000) {
+    throw new Error(`recorded_at is too far in the future (max ${env.telemetryMaxFutureSeconds}s)`);
+  }
+  if (parsedRecordedAt < now - env.telemetryMaxPastSeconds * 1000) {
+    throw new Error(`recorded_at is too far in the past (max ${env.telemetryMaxPastSeconds}s)`);
+  }
+  const recordedAt = new Date(parsedRecordedAt);
 
+  const pool = await getPool();
   const transaction = new sql.Transaction(pool);
   const saved = [];
   const alertEvents = [];

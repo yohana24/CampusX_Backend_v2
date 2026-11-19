@@ -1,6 +1,6 @@
 'use strict';
 
-const { sql, poolPromise } = require('../db/sqlserver');
+const { sql, getPool } = require('../db/sqlserver');
 const env = require('../config/env');
 const { publish } = require('./mqttClient');
 const { emitData } = require('./eventHub');
@@ -10,7 +10,7 @@ let schemaReady;
 async function ensureSchema() {
   if (!schemaReady) {
     schemaReady = (async () => {
-      const pool = await poolPromise;
+      const pool = await getPool();
       await pool.request().query(`
         IF COL_LENGTH('dbo.Commands', 'RequestedBy') IS NULL
           ALTER TABLE dbo.Commands ADD RequestedBy NVARCHAR(100) NULL;
@@ -75,7 +75,7 @@ async function listRoomActuators(pool, roomId) {
 
 async function getOccupancyAutomationSettings(roomId) {
   await ensureSchema();
-  const pool = await poolPromise;
+  const pool = await getPool();
   const room = await pool.request().input('roomId', sql.Int, roomId)
     .query('SELECT RoomId FROM dbo.Rooms WHERE RoomId=@roomId AND IsActive=1');
   if (!room.recordset.length) {
@@ -147,7 +147,7 @@ async function validateActuator(pool, roomId, deviceCode, label) {
 
 async function saveOccupancyAutomationSettings(input) {
   await ensureSchema();
-  const pool = await poolPromise;
+  const pool = await getPool();
   const fanCode = input.fanDeviceCode || null;
   const lightCode = input.lightDeviceCode || null;
   if (fanCode && lightCode && fanCode.toLowerCase() === lightCode.toLowerCase()) {
@@ -211,9 +211,28 @@ async function sendAutomationCommand(pool, device, desiredState) {
     const previousStatus = String(previous.status || '').toLowerCase();
     const previousState = parsePayloadState(previous.payloadJson);
     if (previousStatus === 'pending' || previousStatus === 'sent') {
-      return { deviceCode: device.deviceCode, status: 'in_progress', message: 'A previous command is still in progress.' };
+      // The timeout sweeper normally clears these rows, but do not trust a
+      // stale in-memory timing window: an unanswered command older than the
+      // configured timeout must never block automation indefinitely.
+      const ageMs = previous.createdAt ? Date.now() - new Date(previous.createdAt).getTime() : Infinity;
+      if (ageMs < env.commandTimeoutSeconds * 1000) {
+        return { deviceCode: device.deviceCode, status: 'in_progress', message: 'A previous command is still in progress.' };
+      }
     }
-      const confirmedStateResult = await pool.request()
+    if (previousStatus === 'completed' && previousState === desiredState) {
+      return { deviceCode: device.deviceCode, status: 'already_set', message: `Already ${desiredState}.` };
+    }
+    if (previousStatus === 'failed') {
+      const ageMs = previous.createdAt ? Date.now() - new Date(previous.createdAt).getTime() : Infinity;
+      if (ageMs < 60_000) {
+        return { deviceCode: device.deviceCode, status: 'recent_failure', message: 'A recent command failed; retry is paused briefly.' };
+      }
+    }
+  }
+
+  // SQL Server is the source of truth: never send a redundant command when the
+  // latest confirmed actuator state already matches the desired state.
+  const confirmedStateResult = await pool.request()
     .input('deviceId', sql.Int, device.deviceId)
     .query(`
       SELECT TOP (1) LOWER(StateValue) AS stateValue
@@ -225,16 +244,6 @@ async function sendAutomationCommand(pool, device, desiredState) {
   const confirmedState = String(confirmedStateResult.recordset[0]?.stateValue || '').toLowerCase();
   if (confirmedState === desiredState) {
     return { deviceCode: device.deviceCode, status: 'already_set', message: `SQL Server confirms the relay is already ${desiredState}.` };
-  }
-if (previousStatus === 'completed' && previousState === desiredState) {
-      return { deviceCode: device.deviceCode, status: 'already_set', message: `Already ${desiredState}.` };
-    }
-    if (previousStatus === 'failed') {
-      const ageMs = previous.createdAt ? Date.now() - new Date(previous.createdAt).getTime() : Infinity;
-      if (ageMs < 60_000) {
-        return { deviceCode: device.deviceCode, status: 'recent_failure', message: 'A recent command failed; retry is paused briefly.' };
-      }
-    }
   }
 
   const payloadJson = JSON.stringify({ state: desiredState });
@@ -286,7 +295,7 @@ async function evaluateOccupancyAutomation({ deviceCode, count, receivedAt }) {
   // Duplicate telemetry messages are skipped by telemetryService before this point.
 
   await ensureSchema();
-  const pool = await poolPromise;
+  const pool = await getPool();
   const source = await pool.request().input('deviceCode', sql.NVarChar(100), deviceCode).query(`
     SELECT TOP (1) d.DeviceId AS deviceId, d.DeviceCode AS deviceCode, n.RoomId AS roomId
     FROM dbo.Devices d

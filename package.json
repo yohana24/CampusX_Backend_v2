@@ -8,7 +8,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "check": "node scripts/syntax-check.js"
+    "check": "node scripts/check-all.js",
+    "check:syntax": "node scripts/syntax-check.js",
+    "check:connections": "node scripts/check-connections.js",
+    "smoke": "node scripts/smoke.js",
+    "verify": "npm run check && npm run smoke"
   },
   "engines": {
     "node": ">=18"

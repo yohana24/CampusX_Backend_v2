@@ -4,10 +4,12 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('node:path');
+const env = require('./config/env');
 const { securityMiddleware, apiKeyGuard } = require('./middleware/security');
 const { errorHandler, HttpError } = require('./middleware/errors');
 const apiRouter = require('./routes/api');
 const computerVisionRouter = require('./routes/computerVision');
+const contract = require('./docs/contract');
 const {
   isAuthConfigured,
   sessionMiddleware,
@@ -87,34 +89,40 @@ app.use(express.static(publicDir, {
   },
 }));
 
-app.get('/docs', (req, res) => res.type('text/plain').send([
-  'CampusX Backend API v1',
-  '',
-  'Dashboard login: GET /login.html, POST /auth/login, POST /auth/logout',
-  'Dashboard: GET / or /dashboard (authenticated session required)',
-  'GET /api/v1/health (public diagnostic endpoint)',
-  'GET  /api/v1/sqlserver/health',
-  'GET  /api/v1/dashboard/summary',
-  'GET|POST|PATCH /api/v1/rooms',
-  'GET|POST|PATCH /api/v1/nodes',
-  'GET|POST /api/v1/node-types',
-  'GET|POST|PATCH /api/v1/devices',
-  'GET|POST|PATCH /api/v1/device-types',
-  'GET|POST|PATCH /api/v1/metrics',
-  'GET|POST|PATCH /api/v1/device-capabilities',
-  'GET|POST|PATCH /api/v1/alert-rules',
-  'GET /api/v1/telemetry/latest',
-  'GET /api/v1/telemetry',
-  'GET|PATCH /api/v1/alerts',
-  'GET|POST /api/v1/commands',
-  'GET|POST /api/v1/states',
-  'GET /api/v1/stream (Server-Sent Events)',
-  '',
-  'MQTT telemetry: smart-campus/telemetry',
-  'MQTT device telemetry: smart-campus/devices/{deviceCode}/telemetry',
-  'MQTT command response: smart-campus/devices/{deviceCode}/command-response',
-  'Dashboard API requires a signed login session. Write operations may also require X-API-Key.',
-].join('\n')));
+app.get('/docs/contract.json', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.json(contract);
+});
+
+app.get('/docs', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.type('html').send([
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    '<title>CampusX Backend v2 — Contract</title>',
+    '<style>body{margin:0;background:#0b1220;color:#dbe7ff;font:15px/1.6 system-ui,Segoe UI,sans-serif}',
+    'header{padding:42px 7vw;background:linear-gradient(120deg,#123c69,#0b1220 70%);border-bottom:1px solid #233a5c}',
+    'h1{margin:0 0 8px;font-size:38px;letter-spacing:-1px}header p{max-width:760px;color:#9fb8dc}',
+    'main{padding:32px 7vw;max-width:1100px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}',
+    'article{background:#111c30;border:1px solid #233a5c;border-radius:12px;padding:20px}',
+    'h2{margin:0 0 10px;font-size:18px;color:#7fd1ff}code{background:#08111f;padding:2px 6px;border-radius:5px;color:#9ef0c3}',
+    'table{width:100%;border-collapse:collapse;margin-top:10px}td,th{text-align:left;padding:7px 8px;border-bottom:1px solid #1f3352;vertical-align:top}',
+    'th{color:#89a7cf;font-weight:600}a{color:#7fd1ff}.pill{display:inline-block;background:#123c69;color:#cfe8ff;padding:3px 9px;border-radius:99px;font-size:12px;margin:2px}',
+    '</style></head><body><header><h1>CampusX Backend v2</h1>',
+    '<p>SQL Server is the source of truth. MQTT carries device telemetry and commands. SSE pushes live events to the dashboard.</p>',
+    '<p><span class="pill">Health /docs → /api/v1/health</span><span class="pill">Machine contract → /docs/contract.json</span></p></header><main>',
+    '<div class="grid">',
+    '<article><h2>MQTT uplink</h2><p><code>' + contract.mqtt.subscribe[0].topic + '</code><br>',
+    '<code>' + contract.mqtt.subscribe[1].topic + '</code><br>',
+    '<code>' + contract.mqtt.subscribe[2].topic + '</code></p>',
+    '<p>Commands: <code>' + contract.mqtt.publish[0].topicTemplate + '</code></p>',
+    '<p>QoS <code>' + env.mqttQos + '</code> · retain <code>false</code> · numeric-string <code>command_id</code>.</p></article>',
+    '<article><h2>Guarantees</h2><ul>' + contract.mqtt.guarantees.map((item) => '<li>' + item + '</li>').join('') + '</ul></article>',
+    '</div><article style="margin-top:16px"><h2>HTTP endpoints</h2><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Notes</th></tr></thead><tbody>',
+    contract.endpoints.map((e) => '<tr><td><code>' + e.method + '</code></td><td><code>' + e.path + '</code></td><td>' + e.auth + '</td><td>' + e.note + '</td></tr>').join(''),
+    '</tbody></table></article></main></body></html>',
+  ].join(''));
+});
 
 app.use('/api/v1/computer-vision', requireDashboardApi, apiKeyGuard, computerVisionRouter);
 // Authenticated session required for every API route except /health; API_KEY is an optional extra guard.

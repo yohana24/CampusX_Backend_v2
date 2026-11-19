@@ -48,7 +48,7 @@ DASHBOARD_COOKIE_SECURE=false
 - `DASHBOARD_COOKIE_SECURE=false` مناسب للاختبار المحلي على `http://127.0.0.1`. عند النشر خلف HTTPS اضبطه إلى `true`.
 - لا تضع كلمة المرور الخام في `.env` ولا تشارك `.env`.
 - هذه مصادقة حساب Operator واحد، وليست نظام Users/Roles متعدد المستخدمين أو University SSO.
-- كلمة المرور لا تُحفظ في SQL Server؛ يتم التحقق منها باستخدام scrypt hash في إعدادات الخادم.
+- كلمة المرور الخام لا تُحفظ في أي مكان؛ يُحفظ scrypt hash (salt:hash) في جدول `dbo.DashboardAccounts` داخل SQL Server.
 
 ## التشغيل
 
@@ -87,5 +87,5 @@ Invoke-WebRequest http://127.0.0.1:3000/auth/session -UseBasicParsing
 
 - أبقِ `HOST=127.0.0.1` أثناء التطوير المحلي.
 - لا تفتح السيرفر على LAN/Internet قبل إعداد HTTPS، و`DASHBOARD_COOKIE_SECURE=true`، و`API_KEY`، ومراجعة CORS وMQTT firewall/authentication.
-- الجلسة موقعة وموقّتة، وليست مخزنة في قاعدة بيانات؛ إلغاء كل الجلسات يتم بتغيير `DASHBOARD_SESSION_SECRET`.
+- الجلسة موقعة وموقّتة، وليست مخزنة في قاعدة بيانات؛ تغيير كلمة المرور أو اسم المستخدم يزيد `SessionVersion` ويُلغي الجلسات القديمة، ويمكن أيضًا إلغاؤها بتغيير `DASHBOARD_SESSION_SECRET`.
 - لا توجد ميزة استعادة كلمة المرور أو إدارة أدوار في هذا الإصدار.

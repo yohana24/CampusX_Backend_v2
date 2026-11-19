@@ -8,6 +8,10 @@ $cameraScript = Join-Path $root 'web_count_campusx.py'
 $bridgeScript = Join-Path $root 'mqtt_bridge.py'
 $logs = Join-Path $root 'logs'
 $state = Join-Path $root '.run'
+$cvHost = if ($env:CV_WEB_HOST) { $env:CV_WEB_HOST } else { '127.0.0.1' }
+$cvPort = if ($env:CV_WEB_PORT) { $env:CV_WEB_PORT } else { '5000' }
+$healthUrl = "http://${cvHost}:${cvPort}/json"
+$probeUrl = "http://${cvHost}:${cvPort}/health"
 
 New-Item -ItemType Directory -Force -Path $logs, $state | Out-Null
 
@@ -17,14 +21,24 @@ foreach ($required in @($python, $cameraScript, $bridgeScript)) {
     }
 }
 
-function Find-ExistingScriptProcess([string]$ScriptName) {
-    return Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
-        Where-Object {
-            $_.CommandLine -and $_.CommandLine.IndexOf($ScriptName, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
-        } |
-        Select-Object -First 1
+# One small WMI snapshot (python.exe only) reused by every adoption check.
+# This replaces the repeated full Win32_Process scans that made start slow.
+$script:procCache = $null
+$script:procCacheAt = [datetime]::MinValue
+function Get-ProcessSnapshot {
+    if ($null -eq $script:procCache -or ((Get-Date) - $script:procCacheAt).TotalSeconds -gt 5) {
+        $script:procCache = @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue)
+        $script:procCacheAt = Get-Date
+    }
+    return $script:procCache
 }
-
+function Find-ExistingScriptProcess([string]$ScriptName) {
+    $match = @(Get-ProcessSnapshot | Where-Object {
+        $_.CommandLine -and $_.CommandLine.IndexOf($ScriptName, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+    } | Select-Object -First 1)
+    if ($match.Count -gt 0) { return $match[0] }
+    return $null
+}
 function Get-ManagedProcess([string]$PidFile, [string]$ScriptName) {
     if (-not (Test-Path $PidFile)) { return $null }
     $raw = (Get-Content $PidFile -Raw).Trim()
@@ -33,12 +47,22 @@ function Get-ManagedProcess([string]$PidFile, [string]$ScriptName) {
         Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
         return $null
     }
-    $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $id" -ErrorAction SilentlyContinue
-    if ($proc -and $proc.CommandLine -and $proc.CommandLine.IndexOf($ScriptName, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+    $match = @(Get-ProcessSnapshot | Where-Object { [int]$_.ProcessId -eq $id } | Select-Object -First 1)
+    if ($match.Count -gt 0 -and $match[0].CommandLine -and
+        $match[0].CommandLine.IndexOf($ScriptName, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
         return $id
     }
     Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
     return $null
+}
+function Test-Health {
+    try {
+        # /health is a lightweight endpoint; /json can lag while YOLO is busy.
+        $null = Invoke-RestMethod -Uri $probeUrl -TimeoutSec 3
+        return $true
+    } catch {
+        return $false
+    }
 }
 
 function Start-ManagedProcess(
@@ -57,7 +81,7 @@ function Start-ManagedProcess(
 
     # Adopt a manually launched process of this exact script instead of starting a duplicate.
     $found = Find-ExistingScriptProcess -ScriptName $scriptName
-    if ($found) {
+    if ($null -ne $found) {
         Set-Content -Path $PidFile -Value $found.ProcessId -Encoding ascii
         Write-Host "$Name is already running; adopted PID $($found.ProcessId)." -ForegroundColor Yellow
         return [int]$found.ProcessId
@@ -73,9 +97,13 @@ function Start-ManagedProcess(
         -PassThru
 
     Set-Content -Path $PidFile -Value $proc.Id -Encoding ascii
-    Start-Sleep -Seconds 2
-    $stillRunning = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
-    if (-not $stillRunning) {
+    # Short verify loop instead of a blind 2 second sleep.
+    $started = $false
+    for ($i = 0; $i -lt 12; $i++) {
+        Start-Sleep -Milliseconds 250
+        if (Get-Process -Id $proc.Id -ErrorAction SilentlyContinue) { $started = $true; break }
+    }
+    if (-not $started) {
         Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
         $details = ''
         if (Test-Path $ErrLog) { $details = (Get-Content $ErrLog -Tail 30) -join "`n" }
@@ -87,30 +115,29 @@ function Start-ManagedProcess(
 
 # Reuse the teammate's camera process if its JSON endpoint is already healthy.
 $cameraReady = $false
-try {
-    $null = Invoke-RestMethod -Uri 'http://127.0.0.1:5000/json' -TimeoutSec 2
+if (Test-Health) {
     $cameraReady = $true
     $cameraExisting = Find-ExistingScriptProcess -ScriptName 'web_count_campusx.py'
-    if ($cameraExisting) {
+    if ($null -ne $cameraExisting) {
         Set-Content -Path (Join-Path $state 'camera.pid') -Value $cameraExisting.ProcessId -Encoding ascii
         Write-Host "Computer Vision is already responding; adopted PID $($cameraExisting.ProcessId)." -ForegroundColor Yellow
     } else {
-        Write-Host 'Computer Vision is already responding at 127.0.0.1:5000; reusing external service.' -ForegroundColor Yellow
+        Write-Host "Computer Vision is already responding at $healthUrl; reusing external service." -ForegroundColor Yellow
     }
-} catch {
+} else {
     $cameraPid = Start-ManagedProcess -Name 'Computer Vision' -ScriptPath $cameraScript `
         -OutLog (Join-Path $logs 'camera.out.log') `
         -ErrLog (Join-Path $logs 'camera.err.log') `
         -PidFile (Join-Path $state 'camera.pid')
 
-    Write-Host 'Waiting for the camera service at http://127.0.0.1:5000/json ...'
-    for ($i = 0; $i -lt 45; $i++) {
-        Start-Sleep -Seconds 1
-        try {
-            $null = Invoke-RestMethod -Uri 'http://127.0.0.1:5000/json' -TimeoutSec 2
-            $cameraReady = $true
-            break
-        } catch { }
+    Write-Host "Waiting for the camera service at $healthUrl ..."
+    # Poll fast (300 ms) so we return as soon as YOLO + camera are ready, but
+    # cap the whole wait by wall-clock time so a stuck service cannot stretch
+    # the dashboard Start request to the backend timeout.
+    $deadline = (Get-Date).AddSeconds(30)
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Milliseconds 300
+        if (Test-Health) { $cameraReady = $true; break }
         if (-not (Get-Process -Id $cameraPid -ErrorAction SilentlyContinue)) { break }
     }
 }
@@ -128,6 +155,6 @@ $null = Start-ManagedProcess -Name 'MQTT Bridge' -ScriptPath $bridgeScript `
 
 Write-Host ''
 Write-Host 'CampusX Computer Vision is running.' -ForegroundColor Green
-Write-Host 'Camera preview: http://127.0.0.1:5000/'
+Write-Host "Camera preview: http://${cvHost}:${cvPort}/"
 Write-Host "Logs: $logs"
 Write-Host 'The dashboard Stop button stops only these two matching Python scripts.'

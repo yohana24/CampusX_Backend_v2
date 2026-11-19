@@ -1,13 +1,16 @@
 'use strict';
 
 const express = require('express');
-const { sql, poolPromise } = require('../db/sqlserver');
+const { sql, poolPromise, getPoolState } = require('../db/sqlserver');
 const env = require('../config/env');
 const { publish, client: mqttClient } = require('../services/mqttClient');
+const { buildDeviceTopic } = require('../utils/mqttTopics');
 const { hub, emitData } = require('../services/eventHub');
 const { HttpError, asyncHandler } = require('../middleware/errors');
+const { isAuthConfigured } = require('../middleware/dashboardAuth');
 
 const router = express.Router();
+const startedAt = Date.now();
 router.use('/occupancy-automation', require('./occupancyAutomation'));
 
 function requiredString(value, field, max = 150) {
@@ -67,6 +70,26 @@ function resultOk(res, data, extra = {}) { return res.json({ status: 'ok', ...ex
 function checkStatus(value, allowed, field) {
   if (!allowed.includes(value)) throw new HttpError(400, 'VALIDATION_ERROR', `${field} must be one of: ${allowed.join(', ')}`);
 }
+function hasOwn(value, key) {
+  return value !== null && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, key);
+}
+function nullableInt(value, field, min = 0, max = 2147483647) {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < min || number > max) {
+    throw new HttpError(400, 'VALIDATION_ERROR', `${field} must be an integer between ${min} and ${max} or null`);
+  }
+  return number;
+}
+function nullableString(value, field, max = 150) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return requiredString(value, field, max);
+}
+function commandTopic(deviceCode) {
+  return buildDeviceTopic(env.commandTopicPrefix, deviceCode, 'commands');
+}
 
 async function getRooms(pool, req) {
   const active = optionalBoolean(req.query.active, 'active');
@@ -112,14 +135,49 @@ function telemetryCompatibility(row) {
 
 // Health and dashboard
 router.get('/health', asyncHandler(async (req, res) => {
-  let database = 'disconnected';
-  try { const p = await poolPromise; await p.request().query('SELECT 1 AS ok'); database = 'connected'; } catch { /* returned in health status */ }
-  return res.status(database === 'connected' ? 200 : 503).json({
-    status: database === 'connected' ? 'ok' : 'degraded',
-    service: 'campusx-backend', database,
-    mqtt: mqttClient.connected ? 'connected' : 'disconnected',
+  const poolState = getPoolState();
+  let database = poolState.connected ? 'connected' : 'disconnected';
+  let databaseError = poolState.lastError;
+  if (database === 'connected') {
+    try {
+      const p = await poolPromise;
+      await p.request().query('SELECT 1 AS ok');
+    } catch (error) {
+      database = 'disconnected';
+      databaseError = error.message;
+    }
+  }
+  const mqtt = mqttClient.connected ? 'connected' : 'disconnected';
+  const healthy = database === 'connected' && mqtt === 'connected';
+  const strict = ['1', 'true', 'yes'].includes(String(req.query.strict || '').toLowerCase()) || env.strictHealth;
+  return res.status(strict && !healthy ? 503 : 200).json({
+    status: healthy ? 'ok' : 'degraded',
+    service: 'campusx-backend',
+    version: '2.0.0',
+    database,
+    mqtt,
+    checks: {
+      database: { status: database, error: databaseError || undefined },
+      mqtt: { status: mqtt, clientId: env.mqttClientId },
+      auth: { configured: isAuthConfigured() },
+    },
+    uptimeSeconds: Math.floor(process.uptime()),
+    startedAt: new Date(startedAt).toISOString(),
     time: new Date().toISOString(),
+    docs: '/docs',
   });
+}));
+router.get('/db-check', asyncHandler(async (req, res) => {
+  const started = process.hrtime.bigint();
+  const p = await poolPromise;
+  const r = await p.request().query(`
+    SELECT DB_NAME() AS databaseName,
+           @@SERVERNAME AS serverName,
+           SYSUTCDATETIME() AS serverTimeUtc,
+           (SELECT COUNT_BIG(*) FROM dbo.Devices) AS deviceCount
+  `);
+  const latencyMs = Number(process.hrtime.bigint() - started) / 1e6;
+  return resultOk(res, { ...r.recordset[0], latencyMs: Math.round(latencyMs * 100) / 100, pool: getPoolState() });
 }));
 router.get('/sqlserver/health', asyncHandler(async (req, res) => {
   const pool = await poolPromise;
@@ -146,6 +204,20 @@ router.get(['/rooms', '/labs'], asyncHandler(async (req, res) => {
   const rows = await getRooms(pool, req);
   return resultOk(res, rows, { count: rows.length });
 }));
+router.get('/rooms/:id', asyncHandler(async (req, res) => {
+  const id = requiredInt(req.params.id, 'roomId');
+  const pool = await poolPromise;
+  const r = await pool.request().input('id', sql.Int, id).query(`
+    SELECT RoomId AS id, RoomId AS roomId, RoomCode AS roomCode, RoomName AS name,
+           RoomName AS roomName, RoomId AS lab_id, Capacity AS capacity,
+           LocationDetails AS locationDetails, IsActive AS isActive,
+           (SELECT COUNT(*) FROM dbo.Nodes n WHERE n.RoomId=r.RoomId) AS nodeCount,
+           (SELECT COUNT(*) FROM dbo.Devices d INNER JOIN dbo.Nodes n ON n.NodeId=d.NodeId WHERE n.RoomId=r.RoomId) AS deviceCount
+    FROM dbo.Rooms r WHERE r.RoomId=@id
+  `);
+  if (!r.recordset.length) throw new HttpError(404, 'NOT_FOUND', 'Room not found');
+  return resultOk(res, r.recordset[0]);
+}));
 router.post('/rooms', asyncHandler(async (req, res) => {
   const code = requiredString(req.body.roomCode ?? req.body.code, 'roomCode', 50);
   const name = requiredString(req.body.roomName ?? req.body.name, 'roomName', 150);
@@ -162,22 +234,36 @@ router.post('/rooms', asyncHandler(async (req, res) => {
 }));
 router.patch('/rooms/:id', asyncHandler(async (req, res) => {
   const id = requiredInt(req.params.id, 'roomId');
+  const hasName = hasOwn(req.body, 'roomName') || hasOwn(req.body, 'name');
+  const hasCode = hasOwn(req.body, 'roomCode') || hasOwn(req.body, 'code');
+  const hasCapacity = hasOwn(req.body, 'capacity');
+  const hasLocation = hasOwn(req.body, 'locationDetails');
   const active = optionalBoolean(req.body.isActive, 'isActive');
-  const name = req.body.roomName ?? req.body.name;
-  const code = req.body.roomCode ?? req.body.code;
-  const capacity = req.body.capacity;
-  const location = req.body.locationDetails;
-  if ([name, code, capacity, location, active].every((x) => x === undefined || x === null)) throw new HttpError(400, 'VALIDATION_ERROR', 'Provide at least one field to update');
+
+  if (![hasName, hasCode, hasCapacity, hasLocation, active !== null].some(Boolean)) {
+    throw new HttpError(400, 'VALIDATION_ERROR', 'Provide at least one field to update');
+  }
+
+  const nameRaw = hasOwn(req.body, 'roomName') ? req.body.roomName : req.body.name;
+  const codeRaw = hasOwn(req.body, 'roomCode') ? req.body.roomCode : req.body.code;
+  if (hasName && nameRaw == null) throw new HttpError(400, 'VALIDATION_ERROR', 'roomName cannot be null');
+  if (hasCode && codeRaw == null) throw new HttpError(400, 'VALIDATION_ERROR', 'roomCode cannot be null');
+
+  const name = hasName ? requiredString(nameRaw, 'roomName', 150) : null;
+  const code = hasCode ? requiredString(codeRaw, 'roomCode', 50) : null;
+  const capacity = hasCapacity ? nullableInt(req.body.capacity, 'capacity', 0, 2147483647) : null;
+  const location = hasLocation ? nullableString(req.body.locationDetails, 'locationDetails', 250) : null;
+
   const pool = await poolPromise;
   const r = await pool.request()
     .input('id', sql.Int, id)
-    .input('code', sql.NVarChar(50), code === undefined ? null : requiredString(code, 'roomCode', 50))
-    .input('name', sql.NVarChar(150), name === undefined ? null : requiredString(name, 'roomName', 150))
-    .input('capacity', sql.Int, capacity === undefined ? null : (capacity == null ? null : Number(capacity)))
-    .input('location', sql.NVarChar(250), location === undefined ? null : (location == null ? null : String(location).slice(0, 250)))
+    .input('code', sql.NVarChar(50), code)
+    .input('name', sql.NVarChar(150), name)
+    .input('capacity', sql.Int, capacity)
+    .input('location', sql.NVarChar(250), hasLocation ? location : null)
     .input('active', sql.Bit, active)
-    .input('hasCode', sql.Bit, code !== undefined).input('hasName', sql.Bit, name !== undefined)
-    .input('hasCapacity', sql.Bit, capacity !== undefined).input('hasLocation', sql.Bit, location !== undefined)
+    .input('hasCode', sql.Bit, hasCode).input('hasName', sql.Bit, hasName)
+    .input('hasCapacity', sql.Bit, hasCapacity).input('hasLocation', sql.Bit, hasLocation)
     .input('hasActive', sql.Bit, active !== null)
     .query(`
       UPDATE dbo.Rooms SET
@@ -584,10 +670,34 @@ router.patch('/alerts/:id', asyncHandler(async (req, res) => {
   return resultOk(res, r.recordset[0]);
 }));
 
+async function setAlertStatus(req, res, status) {
+  const id = requiredInt(req.params.id, 'alertId');
+  const pool = await poolPromise;
+  const r = await pool.request().input('id', sql.BigInt, id).input('status', sql.NVarChar(30), status)
+    .query(`UPDATE dbo.Alerts SET Status=@status, ResolvedAt=CASE WHEN @status IN (N'resolved',N'closed') THEN COALESCE(ResolvedAt,SYSUTCDATETIME()) ELSE NULL END OUTPUT inserted.AlertId AS alertId, inserted.DeviceId AS deviceId, inserted.RoomId AS roomId, inserted.AlertType AS alertType, inserted.Severity AS severity, inserted.Message AS message, inserted.Status AS status, inserted.CreatedAt AS createdAt, inserted.ResolvedAt AS resolvedAt WHERE AlertId=@id`);
+  if (!r.recordset.length) throw new HttpError(404, 'NOT_FOUND', 'Alert not found');
+  emitData('alert', { action: 'status_changed', alert: r.recordset[0] });
+  return resultOk(res, r.recordset[0]);
+}
+router.post('/alerts/:id/acknowledge', asyncHandler((req, res) => setAlertStatus(req, res, 'acknowledged')));
+router.post('/alerts/:id/resolve', asyncHandler((req, res) => setAlertStatus(req, res, 'resolved')));
+
 // Commands; sender identity is taken from the authenticated CampusX session, never from request JSON.
 router.post('/commands', asyncHandler(async (req, res) => {
   const commandType = requiredString(req.body.commandType ?? req.body.type, 'commandType', 100);
-  const payloadJson = jsonString(req.body.payload ?? {}, 'payload', false);
+  if (env.commandTypes.length && !env.commandTypes.includes(commandType)) {
+    throw new HttpError(400, 'INVALID_COMMAND_TYPE', `commandType must be one of: ${env.commandTypes.join(', ')}`);
+  }
+  const payloadObject = req.body.payload ?? {};
+  if (commandType.toLowerCase() === 'set_state') {
+    const desired = payloadObject?.state ?? payloadObject?.value;
+    const normalized = typeof desired === 'boolean' ? (desired ? 'on' : 'off')
+      : (typeof desired === 'string' ? desired.trim().toLowerCase() : '');
+    if (!['on', 'off'].includes(normalized)) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'set_state requires payload.state to be "on", "off", or a boolean');
+    }
+  }
+  const payloadJson = jsonString(payloadObject, 'payload', false);
   const deviceId = req.body.deviceId == null ? null : requiredInt(req.body.deviceId, 'deviceId');
   const deviceCode = req.body.deviceCode == null ? null : requiredString(req.body.deviceCode, 'deviceCode', 100);
   if (deviceId === null && deviceCode === null) throw new HttpError(400, 'VALIDATION_ERROR', 'deviceId or deviceCode is required');
@@ -630,7 +740,7 @@ router.post('/commands', asyncHandler(async (req, res) => {
       VALUES(@deviceId, NULL, @requestedBy, @type, @payload, N'pending')
     `);
   const command = insert.recordset[0];
-  const topic = `${env.commandTopicPrefix}/${encodeURIComponent(device.DeviceCode)}/commands`;
+  const topic = commandTopic(device.DeviceCode);
 
   // Best-effort audit entry. The Commands row itself remains the primary command history.
   try {
@@ -757,6 +867,25 @@ router.get('/commands', asyncHandler(async (req, res) => {
     totalPages: Math.ceil(total / limit),
   });
 }));
+router.get('/commands/:id', asyncHandler(async (req, res) => {
+  const id = requiredInt(req.params.id, 'commandId');
+  const pool = await poolPromise;
+  const r = await pool.request().input('id', sql.BigInt, id).query(`
+    SELECT c.CommandId AS commandId, c.DeviceId AS deviceId, d.DeviceCode AS deviceCode,
+           d.DeviceName AS deviceName, r.RoomId AS roomId, r.RoomCode AS roomCode,
+           r.RoomName AS roomName, c.UserId AS userId, c.RequestedBy AS requestedBy,
+           c.CommandType AS commandType, c.PayloadJson AS payloadJson, c.Status AS status,
+           c.CreatedAt AS createdAt, c.CompletedAt AS completedAt
+    FROM dbo.Commands c
+    INNER JOIN dbo.Devices d ON d.DeviceId=c.DeviceId
+    INNER JOIN dbo.Nodes n ON n.NodeId=d.NodeId
+    LEFT JOIN dbo.Rooms r ON r.RoomId=n.RoomId
+    WHERE c.CommandId=@id
+  `);
+  if (!r.recordset.length) throw new HttpError(404, 'NOT_FOUND', 'Command not found');
+  return resultOk(res, commandCompatibility(r.recordset[0]));
+}));
+
 // Generic states for relays, fans, controllers, and future actuators.
 router.get('/states', asyncHandler(async (req, res) => {
   const deviceId = intQuery(req.query.deviceId, 'deviceId');
@@ -764,6 +893,23 @@ router.get('/states', asyncHandler(async (req, res) => {
   const pool = await poolPromise;
   const r = await pool.request().input('deviceId', sql.Int, deviceId).input('limit', sql.Int, limit)
     .query(`SELECT TOP (@limit) s.StateId AS stateId, s.DeviceId AS deviceId, d.DeviceCode AS deviceCode, s.StateCode AS stateCode, s.StateValue AS stateValue, s.RecordedAt AS recordedAt FROM dbo.Device_States s JOIN dbo.Devices d ON d.DeviceId=s.DeviceId WHERE (@deviceId IS NULL OR s.DeviceId=@deviceId) ORDER BY s.RecordedAt DESC,s.StateId DESC`);
+  return resultOk(res, r.recordset, { count: r.recordset.length });
+}));
+router.get('/states/latest', asyncHandler(async (req, res) => {
+  const deviceId = intQuery(req.query.deviceId, 'deviceId');
+  const pool = await poolPromise;
+  const r = await pool.request().input('deviceId', sql.Int, deviceId).query(`
+    WITH Ranked AS (
+      SELECT s.StateId AS stateId, s.DeviceId AS deviceId, d.DeviceCode AS deviceCode,
+             s.StateCode AS stateCode, s.StateValue AS stateValue, s.RecordedAt AS recordedAt,
+             ROW_NUMBER() OVER (PARTITION BY s.DeviceId, s.StateCode ORDER BY s.RecordedAt DESC, s.StateId DESC) AS rn
+      FROM dbo.Device_States s
+      JOIN dbo.Devices d ON d.DeviceId=s.DeviceId
+      WHERE (@deviceId IS NULL OR s.DeviceId=@deviceId)
+    )
+    SELECT stateId, deviceId, deviceCode, stateCode, stateValue, recordedAt
+    FROM Ranked WHERE rn=1 ORDER BY deviceCode, stateCode
+  `);
   return resultOk(res, r.recordset, { count: r.recordset.length });
 }));
 router.post('/states', asyncHandler(async (req, res) => {
@@ -782,6 +928,8 @@ router.post('/states', asyncHandler(async (req, res) => {
 }));
 
 // Live server-sent event stream for a dashboard; MQTT remains the device uplink.
+const streamResponses = new Set();
+
 router.get('/stream', (req, res) => {
   res.status(200);
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -796,10 +944,33 @@ router.get('/stream', (req, res) => {
   };
   const heartbeat = setInterval(() => { if (!res.writableEnded) res.write(`: heartbeat ${Date.now()}\n\n`); }, 20000);
   heartbeat.unref();
+  let finished = false;
+  const cleanup = () => {
+    if (finished) return;
+    finished = true;
+    clearInterval(heartbeat);
+    hub.off('data', onData);
+    streamResponses.delete(res);
+  };
   hub.on('data', onData);
-  req.on('close', () => { clearInterval(heartbeat); hub.off('data', onData); });
+  req.on('close', cleanup);
+  streamResponses.add(res);
 });
+
+/** Called during graceful shutdown so HTTP does not wait on open SSE streams. */
+function closeStreams(reason = 'server_shutdown') {
+  for (const res of [...streamResponses]) {
+    try {
+      if (!res.writableEnded) {
+        res.write(`event: server.shutdown\ndata: ${JSON.stringify({ reason, time: new Date().toISOString() })}\n\n`);
+        res.end();
+      }
+    } catch { /* client already gone */ }
+  }
+  streamResponses.clear();
+}
 
 router.use((req, res, next) => next(new HttpError(404, 'ROUTE_NOT_FOUND', `No route: ${req.method} ${req.originalUrl}`)));
 
 module.exports = router;
+module.exports.closeStreams = closeStreams;

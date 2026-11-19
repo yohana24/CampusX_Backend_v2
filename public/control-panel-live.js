@@ -509,7 +509,7 @@
     setText('control-cv-live-count', cameraCount === null || cameraCount === undefined || !Number.isFinite(Number(cameraCount))
       ? 'No live frame' : `${Math.round(Number(cameraCount))} people`);
     const inference = data?.camera?.inferenceMs;
-    setText('control-cv-inference', inference === null || inference === undefined ? 'â€”' : `${Number(inference).toFixed(0)} ms`);
+    setText('control-cv-inference', inference === null || inference === undefined ? '—' : `${Number(inference).toFixed(0)} ms`);
 
     const startButton = $('#control-cv-start');
     const stopButton = $('#control-cv-stop');
@@ -550,7 +550,7 @@
     if (startButton) startButton.disabled = true;
     if (stopButton) stopButton.disabled = true;
     const badge = $('#control-cv-manager-state');
-    if (badge) badge.textContent = action === 'start' ? 'STARTINGâ€¦' : 'STOPPINGâ€¦';
+    if (badge) badge.textContent = action === 'start' ? 'STARTING…' : 'STOPPING…';
     try {
       const response = await post(`/computer-vision/${action}`, {});
       if (response?.data) renderComputerVisionControl(response.data);
@@ -569,7 +569,7 @@
     $('#control-cv-stop')?.addEventListener('click', () => void controlComputerVision('stop'));
     void loadComputerVisionControl(false);
     if (state.cvManagerPollTimer) window.clearInterval(state.cvManagerPollTimer);
-    state.cvManagerPollTimer = window.setInterval(() => void loadComputerVisionControl(true), 10000);
+    state.cvManagerPollTimer = window.setInterval(() => void loadComputerVisionControl(true), 5000);
   }
   function parseJson(value) {
     if (!value) return {};

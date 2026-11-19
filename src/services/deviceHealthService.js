@@ -4,12 +4,14 @@ const { sql, poolPromise } = require('../db/sqlserver');
 const env = require('../config/env');
 const { emitData } = require('./eventHub');
 
-let timer = null;
-let running = false;
+let offlineTimer = null;
+let commandTimer = null;
+let offlineRunning = false;
+let commandRunning = false;
 
 async function sweepOfflineDevices() {
-  if (running) return;
-  running = true;
+  if (offlineRunning) return;
+  offlineRunning = true;
   try {
     const pool = await poolPromise;
     const result = await pool.request()
@@ -27,20 +29,69 @@ async function sweepOfflineDevices() {
   } catch (error) {
     console.error('[Device health] Offline sweep failed:', error.message);
   } finally {
-    running = false;
+    offlineRunning = false;
+  }
+}
+
+async function sweepTimedOutCommands() {
+  if (commandRunning) return;
+  commandRunning = true;
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('timeoutSeconds', sql.Int, env.commandTimeoutSeconds)
+      .query(`
+        UPDATE c
+        SET Status = N'timeout', CompletedAt = SYSUTCDATETIME()
+        OUTPUT inserted.CommandId AS commandId,
+               inserted.DeviceId AS deviceId,
+               d.DeviceCode AS deviceCode,
+               d.DeviceName AS deviceName,
+               inserted.CommandType AS commandType,
+               inserted.PayloadJson AS payloadJson,
+               inserted.Status AS status,
+               inserted.RequestedBy AS requestedBy,
+               inserted.CompletedAt AS completedAt
+        FROM dbo.Commands c
+        INNER JOIN dbo.Devices d ON d.DeviceId = c.DeviceId
+        WHERE c.Status IN (N'pending', N'sent')
+          AND c.CreatedAt < DATEADD(SECOND, -@timeoutSeconds, SYSUTCDATETIME())
+      `);
+    for (const row of result.recordset) {
+      emitData('command', { ...row, timedOut: true });
+    }
+    if (result.recordset.length) {
+      console.log(`[Command timeout] Marked ${result.recordset.length} stale command(s) as timeout.`);
+    }
+  } catch (error) {
+    console.error('[Command timeout] Sweep failed:', error.message);
+  } finally {
+    commandRunning = false;
   }
 }
 
 function startDeviceHealthService() {
-  if (timer) return;
-  timer = setInterval(sweepOfflineDevices, env.deviceSweepIntervalSeconds * 1000);
-  timer.unref();
+  if (offlineTimer) return;
+  offlineTimer = setInterval(sweepOfflineDevices, env.deviceSweepIntervalSeconds * 1000);
+  offlineTimer.unref();
+  commandTimer = setInterval(sweepTimedOutCommands, env.commandTimeoutSweepSeconds * 1000);
+  commandTimer.unref();
   void sweepOfflineDevices();
+  // Clean up old pending/sent rows on boot so automation cannot stay blocked
+  // forever by a command whose device response was never received.
+  void sweepTimedOutCommands();
 }
 
 function stopDeviceHealthService() {
-  if (timer) clearInterval(timer);
-  timer = null;
+  if (offlineTimer) clearInterval(offlineTimer);
+  if (commandTimer) clearInterval(commandTimer);
+  offlineTimer = null;
+  commandTimer = null;
 }
 
-module.exports = { startDeviceHealthService, stopDeviceHealthService, sweepOfflineDevices };
+module.exports = {
+  startDeviceHealthService,
+  stopDeviceHealthService,
+  sweepOfflineDevices,
+  sweepTimedOutCommands,
+};

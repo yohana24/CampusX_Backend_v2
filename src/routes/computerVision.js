@@ -8,9 +8,10 @@ const router = express.Router();
 function sendError(res, error) {
   const code = error.code || 'CV_MANAGER_ERROR';
   const status = code === 'CV_OPERATION_IN_PROGRESS' ? 409
-    : code === 'CV_PLATFORM_UNSUPPORTED' ? 501
-      : code === 'CV_FILES_MISSING' || code === 'CV_SCRIPT_MISSING' ? 503
-        : 500;
+    : code === 'CV_OPERATION_WAIT_TIMEOUT' || code === 'CV_SCRIPT_TIMEOUT' ? 504
+      : code === 'CV_PLATFORM_UNSUPPORTED' ? 501
+        : code === 'CV_FILES_MISSING' || code === 'CV_SCRIPT_MISSING' ? 503
+          : 500;
   return res.status(status).json({
     status: 'error',
     error: { code, message: error.message || 'Computer Vision operation failed.' },
