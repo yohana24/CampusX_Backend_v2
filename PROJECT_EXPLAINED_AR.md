@@ -260,19 +260,21 @@ POST /api/v1/commands  (session + X-API-Key)
 - `control-panel-live.js.bak-cv-20261031-171734`, `.bak-cv-speed-20261119-133019` (قبل تحسين السرعة)، `.bak-cvrelay-20261031-191205`, `.bak-occupancy-20261031-175353`, `.bak-occupancy-20261031-175528`, `.bak-occupancy-20261031-175836`
 - `dashboard-app.js.before-settings-live.bak`
 
-### 5.6 ملفات ظهرت حديثًا ولم تُرفع بعد (Untracked WIP)
-
-> ظهرت أثناء كتابة هذا الشرح وهي **غير متتبّعة في Git**، فلم أضفها للـ commit. لو كانت شغلك أنت، راجعها قبل ما نضيفها.
+### 5.6 التسجيل (Signup) — صفحات `register.*`
 
 | الملف | الشرح |
 | --- | --- |
-| `public/register.html` | صفحة "Create Your Account" بتصميم مطابق لصفحةLogin (hero + form). فيها حقول الاسم والبريد والباسورد وتأكيده. |
-| `public/register.js` | يتحقق من الحقول ومطابقة الباسورد في المتصفح، يحفظ `{fullName,email}` في `localStorage` ويعيد التوجيه لـ `index.html`. **ما بيعملش أي request للـ backend**، يعني ما بي.onCreate حساب حقيقي في `dbo.DashboardAccounts`. |
+| `public/register.html` | صفحة "Create Your Account" بتصميم مطابق لصفحةLogin (hero + form). فيها حقول `fullName`, `universityEmail`, `password`, `confirmPassword` ورسالة `formMessage`. |
+| `public/register.js` | يتحقق من الحقول في المتصفح، ثم يبعث `POST /auth/register` بـ JSON و `credentials: 'same-origin'`. يعطّل زر الإرسال أثناء الطلب، يعرض رسائل الخطأ من السيرفر، ويعيد التوجيه لـ `/dashboard` بعد النجاح. **ما بيستخدمش `localStorage` خالص دلوقتي.** |
 | `public/register.css` | تنسيق الصفحة (خلفية + neon corners + glass card). |
 
-تنبيهان مهمان:
-1. الصفحة مش مضافة لـ `pageFiles` في `src/app.js`، ففتح `/register.html` هيقابل 404 لحد ما تُضاف.
-2. التسجيل الحالي client-side فقط وغير آمن كإدارة حسابات. لو عايز تسجيل حقيقي لازم نضيف endpoint في `/auth` يكتب في SQL مع scrypt + SessionVersion، ونربطه بالصفحة.
+الجانب Server:
+- `src/app.js` يقدّم `/register.html` و `/register` كصفحات عامة (مش داخل `pageFiles` اللي محمية).
+- `src/routes/dashboardAccount.js` يعرّف `POST /auth/register`.
+- `src/middleware/dashboardAuth.js` دلوقتي بيدعم **كذا حساب**: خريطة account معمولة من `dbo.DashboardAccounts`، تسجيل الدخول بيقبل username أو الإيميل، وكل جلسة بتتعرف على حسابها عبر `AccountId` + `SessionVersion`.
+- كلمة المرور بتتخزن كـ scrypt `<salt>:<hash>`، والباسورد لازم 12-128 حرف.
+- التسجيل بيحط كوكي الجلسة فورًا ويرجّع `redirectTo: '/dashboard'`.
+- `DASHBOARD_REGISTRATION_ENABLED=false` في `.env` بيقفل التسجيل العام مع ترك الحسابات القديمة شغالة.
 
 ---
 

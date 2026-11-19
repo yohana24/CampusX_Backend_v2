@@ -11,6 +11,19 @@
   line-height: 1.5;
 }
 .btn-authenticate:disabled { opacity: .65; cursor: wait; }
+.cx-signup-prompt {
+  margin: 12px 0 0;
+  color: var(--text-muted, #94a3b8);
+  font-size: 11px;
+  text-align: center;
+}
+.cx-signup-link {
+  color: #7fd1ff;
+  font-weight: 600;
+  text-decoration: none;
+  margin-inline-start: 4px;
+}
+.cx-signup-link:hover { text-decoration: underline; }
 .pass-toggle-button {
   position: absolute;
   right: 8px;

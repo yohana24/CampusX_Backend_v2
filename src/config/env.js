@@ -110,4 +110,5 @@ module.exports = Object.freeze({
   forceExitTimeoutMs: numberFromEnv('FORCE_EXIT_TIMEOUT_MS', 15000, 1000, 120000),
 
   strictHealth: booleanFromEnv('STRICT_HEALTH', false),
+  dashboardRegistrationEnabled: booleanFromEnv('DASHBOARD_REGISTRATION_ENABLED', true),
 });

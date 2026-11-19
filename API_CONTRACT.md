@@ -21,13 +21,17 @@ A live, configuration-aware version of this document is available at:
 Authentication endpoints:
 
 ```text
-GET  /login.html
-POST /auth/login        { "username": "...", "password": "..." }
-GET  /auth/session
-POST /auth/logout
-GET  /auth/account
-POST /auth/account/credentials
+GET   /login.html
+GET   /register.html
+POST  /auth/register    { "fullName": "...", "universityEmail": "...", "password": "...", "confirmPassword": "..." }
+POST  /auth/login       { "username": "...", "password": "..." }
+GET   /auth/session
+POST  /auth/logout
+GET   /auth/account
+PATCH /auth/account/credentials
 ```
+
+`POST /auth/register` creates a real row in `dbo.DashboardAccounts` with an scrypt password hash, then sets the same signed session cookie as login and returns `redirectTo: "/dashboard"`. Passwords must be 12-128 characters. The generated username is the email when it fits the 64-character username rules, otherwise a sanitized local part; login accepts either the username or the email. Set `DASHBOARD_REGISTRATION_ENABLED=false` to close public signup while keeping existing accounts usable.
 
 The session cookie is `campusx_session`, `HttpOnly`, `SameSite=Strict`, and optionally `Secure`. Changing dashboard credentials increments `SessionVersion`, which invalidates previously issued cookies.
 

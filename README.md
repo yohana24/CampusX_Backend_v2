@@ -136,6 +136,11 @@ Full details: [MQTT_CONTRACT.md](MQTT_CONTRACT.md) and [FIRMWARE_INTEGRATION.md]
 ## HTTP API at a glance
 
 ```text
+GET   /register.html                 public signup page (SQL-backed account)
+POST  /auth/register                 create account, sign in, redirect to /dashboard
+POST  /auth/login                    username or email + password
+GET   /auth/session                  current signed-in user
+POST  /auth/logout                   clear the session cookie
 GET   /api/v1/health                 public liveness + dependency status
 GET   /api/v1/db-check               SQL round-trip and pool state
 GET   /api/v1/dashboard/summary      dashboard counters + recent alerts
@@ -205,6 +210,9 @@ npm run check:connections
 
 # HTTP smoke test (optionally authenticated)
 npm run smoke
+
+# Signup end-to-end test (creates and deletes a unique test account)
+npm run test:register
 
 # Full sequence
 npm run verify

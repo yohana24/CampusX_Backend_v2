@@ -46,6 +46,14 @@ app.get('/login.html', (req, res, next) => {
   res.sendFile(path.join(publicDir, 'login.html'), (error) => error && next(error));
 });
 app.get('/login', (req, res) => res.redirect('/login.html'));
+app.get('/register.html', (req, res, next) => {
+  if (isAuthConfigured() && req.dashboardUser) {
+    return res.redirect('/dashboard');
+  }
+
+  res.sendFile(path.join(publicDir, 'register.html'), (error) => error && next(error));
+});
+app.get('/register', (req, res) => res.redirect('/register.html'));
 app.post('/auth/login', loginHandler);
 app.post('/auth/logout', logoutHandler);
 app.get('/auth/session', sessionHandler);
