@@ -239,10 +239,12 @@ SQL Server is authoritative. The canonical schema lives in `sql/CampusX_CreateDa
 | `API_CONTRACT.md` | HTTP endpoints, auth, envelopes, filters, pagination, examples. |
 | `MQTT_CONTRACT.md` | Topics, QoS, payload schemas, idempotency, command lifecycle. |
 | `FIRMWARE_INTEGRATION.md` | Copy-paste checklist for the firmware author. |
+| `FIRMWARE_API_REFERENCE.md` | One-page firmware handbook: HTTP endpoints + MQTT contract. |
+| `PROJECT_EXPLAINED_AR.md` | Arabic file-by-file walkthrough of the whole project. |
 | `README_AR.md` | Arabic dashboard/auth setup notes. |
 | `/docs` | Live in-server documentation page. |
 | `/docs/contract.json` | Machine-readable runtime contract. |
 
 ## Change management
 
-A full pre-hardening backup exists at `_backup_before_v2_hardening_20261118_153709` (176 files). No commit or push was created by the hardening work.
+A full pre-hardening backup exists at `_backup_before_v2_hardening_20261118_153709` (176 files) and is ignored by Git. The hardening, firmware docs and project walkthrough were committed and pushed to `origin/main`.
