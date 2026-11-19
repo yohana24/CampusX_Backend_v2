@@ -7,6 +7,7 @@ A live, configuration-aware version of this document is available at:
 
 - `GET /docs` — readable page
 - `GET /docs/contract.json` — JSON
+- Firmware-focused quick reference (MQTT topics, HTTP endpoints, payloads): `FIRMWARE_API_REFERENCE.md`
 
 ## 1. Authentication
 
