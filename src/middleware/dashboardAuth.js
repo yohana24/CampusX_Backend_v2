@@ -726,10 +726,27 @@ async function adminUpdateAccountHandler(req, res) {
       WHERE AccountId = @accountId
     `);
     await loadAccounts(pool);
+    const isSelf = accountId === Number(req.dashboardUser.accountId);
+    let refreshedUser;
+    if (isSelf) {
+      // Editing your own account bumps SessionVersion. Refresh the current
+      // session in the same response so the admin page keeps working without
+      // a manual logout/login round-trip.
+      const fresh = accountsById.get(accountId) || mapAccount(updated.recordset[0]);
+      setSessionCookie(res, fresh);
+      refreshedUser = {
+        accountId: fresh.accountId,
+        username: fresh.username,
+        email: fresh.email,
+        fullName: fresh.fullName,
+        role: fresh.role,
+      };
+    }
     return res.json({
       status: 'ok',
-      message: 'Account updated. Its active sessions were revoked.',
+      message: 'Account updated. Older sessions were revoked.',
       account: publicAdminAccount(updated.recordset[0]),
+      ...(refreshedUser ? { user: refreshedUser } : {}),
     });
   } catch (error) {
     if (error.number === 2627 || error.number === 2601) {

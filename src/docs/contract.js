@@ -164,7 +164,7 @@ const contract = {
     { method: 'PATCH', path: '/auth/account/credentials', auth: 'session', note: 'Change username or password; revokes older sessions' },
     { method: 'GET', path: '/admin-accounts.html', auth: 'admin', note: 'Admin page for dashboard account governance' },
     { method: 'GET', path: '/auth/admin/accounts', auth: 'admin', note: 'List all dashboard accounts without password hashes' },
-    { method: 'PATCH', path: '/auth/admin/accounts/:id', auth: 'admin', note: 'Edit fullName, username, email, role or password; revokes target sessions' },
+    { method: 'PATCH', path: '/auth/admin/accounts/:id', auth: 'admin', note: 'Edit fullName, username, email, role or password; revokes older sessions and refreshes the cookie when editing yourself' },
     { method: 'DELETE', path: '/auth/admin/accounts/:id', auth: 'admin', note: 'Delete an account; self-delete and last-admin deletion are blocked' },
     { method: 'GET', path: `${API}/health`, auth: 'public', note: 'Liveness + DB/MQTT checks; DB error details are logged only; ?strict=1 returns 503 when degraded' },
     { method: 'GET', path: `${API}/db-check`, auth: 'session', note: 'SQL round-trip latency and pool state' },

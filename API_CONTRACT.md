@@ -41,7 +41,7 @@ The session cookie is `campusx_session`, `HttpOnly`, `SameSite=Strict`, and opti
 
 Authentication is rate-limited per IP: 5 failed logins cause a 15-minute block (`429 LOGIN_TEMPORARILY_BLOCKED`), and 5 signup attempts per hour cause a 60-minute block (`429 REGISTRATION_TEMPORARILY_BLOCKED`). Both include a `Retry-After` header.
 
-Dashboard accounts have a `Role` of `user` or `admin`. Set `DASHBOARD_ADMIN_USERNAME` or `DASHBOARD_ADMIN_EMAIL` to choose the administrator (when both are set they must match the same account); if neither is set, the bootstrap/first account is promoted when no admin exists. Admins can list, edit and delete accounts through `/auth/admin/accounts*`. An admin cannot delete their own account, and the last admin cannot be demoted or deleted. Every admin edit increments `SessionVersion`, revoking that account's older sessions.
+Dashboard accounts have a `Role` of `user` or `admin`. Set `DASHBOARD_ADMIN_USERNAME` or `DASHBOARD_ADMIN_EMAIL` to choose the administrator (when both are set they must match the same account); if neither is set, the bootstrap/first account is promoted when no admin exists. Admins can list, edit and delete accounts through `/auth/admin/accounts*`. An admin cannot delete their own account, and the last admin cannot be demoted or deleted. Every admin edit increments `SessionVersion`, revoking that account's older sessions. When an admin edits their own account, the current session cookie is refreshed automatically, so no logout/login is needed.
 
 ## 2. Response format
 
@@ -141,7 +141,7 @@ curl -b cookies.txt -H "X-API-Key: $API_KEY" http://127.0.0.1:3000/api/v1/db-che
 | Method | Path | Notes |
 | --- | --- | --- |
 | GET | `/auth/admin/accounts` | Lists all dashboard accounts. Never returns password hashes. |
-| PATCH | `/auth/admin/accounts/:id` | Edits `fullName`, `username`, `email`, `role` and optional `newPassword`; revokes the target's sessions. |
+| PATCH | `/auth/admin/accounts/:id` | Edits `fullName`, `username`, `email`, `role` and optional `newPassword`; revokes the target's older sessions and refreshes the cookie when editing yourself. |
 | DELETE | `/auth/admin/accounts/:id` | Deletes a dashboard account. Self-delete and deleting the last admin are rejected. |
 
 Example response for the list endpoint:

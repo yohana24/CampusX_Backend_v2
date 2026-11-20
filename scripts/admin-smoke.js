@@ -91,11 +91,22 @@ async function cleanup() {
   assert(edited.response.ok && edited.payload?.account?.fullName === 'Admin Smoke Edited', `Account edit failed: ${edited.response.status}`);
   console.log('OK   admin edited a user account');
 
-  const removed = await request(`/auth/admin/accounts/${userRow.accountId}`, { method: 'DELETE', cookie: login.cookie });
+  const selfEdit = await request(`/auth/admin/accounts/${adminRow.accountId}`, {
+    method: 'PATCH',
+    cookie: login.cookie,
+    body: { fullName: 'Admin Smoke Self' },
+  });
+  assert(selfEdit.response.ok && selfEdit.payload?.user?.fullName === 'Admin Smoke Self', `Self edit failed: ${selfEdit.response.status}`);
+  assert(selfEdit.cookie.startsWith('campusx_session='), 'Self edit did not refresh the session cookie');
+  const sessionAfterEdit = await request('/auth/session', { cookie: selfEdit.cookie });
+  assert(sessionAfterEdit.response.ok, `Refreshed session was rejected: ${sessionAfterEdit.response.status}`);
+  console.log('OK   self-edit refreshed the session without logout');
+
+  const removed = await request(`/auth/admin/accounts/${userRow.accountId}`, { method: 'DELETE', cookie: selfEdit.cookie });
   assert(removed.response.ok, `Account delete failed: ${removed.response.status}`);
   console.log('OK   admin deleted a user account');
 
-  const selfDelete = await request(`/auth/admin/accounts/${adminRow.accountId}`, { method: 'DELETE', cookie: login.cookie });
+  const selfDelete = await request(`/auth/admin/accounts/${adminRow.accountId}`, { method: 'DELETE', cookie: selfEdit.cookie });
   assert(selfDelete.response.status === 400 && selfDelete.payload?.error?.code === 'CANNOT_DELETE_SELF', 'Self-delete was not blocked');
   console.log('OK   self-delete blocked');
 

@@ -131,7 +131,7 @@ POST /api/v1/commands  (session + X-API-Key)
 | --- | --- |
 | `src/middleware/security.js` | security headers + CORS حسب `CORS_ORIGINS` و`PUBLIC_ORIGIN` + `X-API-Key` للعمليات الكتابية + استثناء لـ `/stream?apiKey=`. |
 | `src/middleware/errors.js` | `HttpError`, `asyncHandler` لتغليف الـ async routes، و `errorHandler` اللي يرجّع `{status:'error', error:{code,message}}`. |
-| `src/middleware/dashboardAuth.js` | **الحالي**: تسجيل دخول وتسجيل حسابات من `dbo.DashboardAccounts`، أدوار `user`/`admin`، كوكي `campusx_session` موقّع HttpOnly SameSite=Strict، scrypt للباسورد، `SessionVersion` لإبطال الجلسات القديمة، تحديد محاولات الدخول والتسجيل، وإدارة الحسابات من الأدمن. |
+| `src/middleware/dashboardAuth.js` | **الحالي**: تسجيل دخول وتسجيل حسابات من `dbo.DashboardAccounts`، أدوار `user`/`admin`، كوكي `campusx_session` موقّع HttpOnly SameSite=Strict، scrypt للباسورد، `SessionVersion` لإبطال الجلسات القديمة، تحديد محاولات الدخول والتسجيل، وإدارة الحسابات من الأدمن (تعديل الأدمن لحسابه بيجدّد الكوكي تلقائيًا من غير logout). |
 
 ### 4.3 الـ Routes
 
