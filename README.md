@@ -161,6 +161,8 @@ GET   /api/v1/occupancy-automation   ?roomId=...
 GET   /api/v1/computer-vision/status
 ```
 
+Auth is rate-limited per IP: 5 failed logins block for 15 minutes, and 5 signup attempts per hour block for 60 minutes. Both return `429` with `Retry-After`. Full details are in [API_CONTRACT.md](API_CONTRACT.md) and `/docs/contract.json`.
+
 All API responses use a consistent envelope:
 
 ```json

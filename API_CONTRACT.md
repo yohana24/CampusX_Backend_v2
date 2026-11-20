@@ -13,9 +13,10 @@ A live, configuration-aware version of this document is available at:
 
 | Request | Requirement |
 | --- | --- |
-| `GET /api/v1/health` | Public |
-| All other `/api/v1/*` | Signed dashboard cookie from `POST /auth/login` |
-| Write operations | Also require `X-API-Key` when `API_KEY` is configured |
+| `GET /api/v1/health` | Public. Database error details are logged server-side and never returned in the response. |
+| All other `/api/v1/*` | Signed dashboard cookie from `POST /auth/login` or `POST /auth/register` |
+| Write operations | Also require `X-API-Key` when `API_KEY` is configured. A missing key returns `API_KEY_REQUIRED`; a wrong key returns `API_KEY_INVALID`. |
+| Browser requests | Same-origin requests and `PUBLIC_ORIGIN` are always allowed; other origins must be listed in `CORS_ORIGINS`. |
 | `GET /api/v1/stream` | Cookie + (`X-API-Key` header or `?apiKey=` query, if `API_KEY` is configured) |
 
 Authentication endpoints:
@@ -34,6 +35,8 @@ PATCH /auth/account/credentials
 `POST /auth/register` creates a real row in `dbo.DashboardAccounts` with an scrypt password hash, then sets the same signed session cookie as login and returns `redirectTo: "/dashboard"`. Passwords must be 12-128 characters. The generated username is the email when it fits the 64-character username rules, otherwise a sanitized local part; login accepts either the username or the email. Set `DASHBOARD_REGISTRATION_ENABLED=false` to close public signup while keeping existing accounts usable.
 
 The session cookie is `campusx_session`, `HttpOnly`, `SameSite=Strict`, and optionally `Secure`. Changing dashboard credentials increments `SessionVersion`, which invalidates previously issued cookies.
+
+Authentication is rate-limited per IP: 5 failed logins cause a 15-minute block (`429 LOGIN_TEMPORARILY_BLOCKED`), and 5 signup attempts per hour cause a 60-minute block (`429 REGISTRATION_TEMPORARILY_BLOCKED`). Both include a `Retry-After` header.
 
 ## 2. Response format
 
@@ -69,9 +72,13 @@ Common codes:
 | --- | --- |
 | `VALIDATION_ERROR` | Bad input shape/range |
 | `AUTH_REQUIRED` | No valid dashboard session |
+| `INVALID_CREDENTIALS` | Wrong username/email or password |
 | `AUTH_NOT_CONFIGURED` | SQL/auth bootstrap not ready yet |
-| `API_KEY_REQUIRED` | Missing/invalid `X-API-Key` |
-| `ORIGIN_NOT_ALLOWED` | Origin not listed in `CORS_ORIGINS` |
+| `API_KEY_REQUIRED` | Missing `X-API-Key` |
+| `API_KEY_INVALID` | Supplied `X-API-Key` is wrong |
+| `ORIGIN_NOT_ALLOWED` | Origin is neither same-origin/`PUBLIC_ORIGIN` nor listed in `CORS_ORIGINS` |
+| `LOGIN_TEMPORARILY_BLOCKED` | Too many failed logins (`429`, `Retry-After`) |
+| `REGISTRATION_TEMPORARILY_BLOCKED` | Too many signup attempts (`429`, `Retry-After`) |
 | `NOT_FOUND` | Resource does not exist |
 | `MQTT_PUBLISH_FAILED` | Command saved in SQL but broker publish failed |
 | `INVALID_COMMAND_TYPE` | `COMMAND_TYPES` allowlist rejected the type |
@@ -106,7 +113,7 @@ count, limit, offset, total, page, totalPages
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| GET | `/health` | Public. `status` is `ok` or `degraded`. Includes DB/MQTT/auth checks, uptime, `startedAt`. `?strict=1` returns 503 when degraded (`STRICT_HEALTH=true` has the same effect). |
+| GET | `/health` | Public. `status` is `ok` or `degraded`. Includes DB/MQTT checks, uptime, `startedAt`. DB error details are logged server-side, not returned. `?strict=1` returns 503 when degraded (`STRICT_HEALTH=true` has the same effect). |
 | GET | `/db-check` | SQL round trip, server time, device count, pool state, latency ms. |
 | GET | `/sqlserver/health` | Database name and base-table count. |
 | GET | `/dashboard/summary` | Active rooms/devices, online devices, open alerts, readings last 24h, 10 recent alerts. |
