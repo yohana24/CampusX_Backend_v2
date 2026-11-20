@@ -77,6 +77,7 @@ All settings come from `.env` or process environment variables. There are no har
 | Commands | `COMMAND_TYPES` | empty | Optional allowlist, e.g. `set_state,get_state,reboot`. |
 | Commands | `COMMAND_TIMEOUT_SECONDS`, `COMMAND_TIMEOUT_SWEEP_SECONDS` | 120, 30 | Unanswered `pending`/`sent` commands become `timeout` so automation cannot stay blocked. |
 | Auth | `DASHBOARD_USERNAME`, `DASHBOARD_PASSWORD_HASH`, `DASHBOARD_SESSION_SECRET` | bootstrap only | Generate with `scripts/setup-dashboard-auth.ps1`. |
+| Auth | `DASHBOARD_ADMIN_USERNAME`, `DASHBOARD_ADMIN_EMAIL` | empty | Explicitly promotes a matching account to `admin` (when both are set they must match the same account); if empty, the bootstrap/first account is promoted when no admin exists. |
 | Auth | `DASHBOARD_REGISTRATION_ENABLED` | `true` | Allows `POST /auth/register` and `/register.html` for SQL-backed dashboard accounts. |
 | Auth | `DASHBOARD_SESSION_HOURS` | `8` | Signed session lifetime, clamped to 1..24 hours. |
 | Auth | `DASHBOARD_COOKIE_SECURE` | `false` | Set `true` behind HTTPS. |
@@ -145,6 +146,9 @@ POST  /auth/register                 create account, sign in, redirect to /dashb
 POST  /auth/login                    username or email + password
 GET   /auth/session                  current signed-in user
 POST  /auth/logout                   clear the session cookie
+GET   /auth/admin/accounts           admin only: list dashboard accounts
+PATCH /auth/admin/accounts/:id       admin only: edit account/role/password
+DELETE /auth/admin/accounts/:id      admin only: delete account
 GET   /api/v1/health                 public liveness + dependency status
 GET   /api/v1/db-check               SQL round-trip and pool state
 GET   /api/v1/dashboard/summary      dashboard counters + recent alerts
@@ -219,6 +223,9 @@ npm run smoke
 
 # Signup end-to-end test (creates and deletes a unique test account)
 npm run test:register
+
+# Admin account governance test (creates and deletes temporary accounts)
+npm run test:admin
 
 # Full sequence
 npm run verify

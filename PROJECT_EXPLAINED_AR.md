@@ -131,7 +131,7 @@ POST /api/v1/commands  (session + X-API-Key)
 | --- | --- |
 | `src/middleware/security.js` | security headers + CORS حسب `CORS_ORIGINS` و`PUBLIC_ORIGIN` + `X-API-Key` للعمليات الكتابية + استثناء لـ `/stream?apiKey=`. |
 | `src/middleware/errors.js` | `HttpError`, `asyncHandler` لتغليف الـ async routes، و `errorHandler` اللي يرجّع `{status:'error', error:{code,message}}`. |
-| `src/middleware/dashboardAuth.js` | **الحالي**: تسجيل دخول وتسجيل حسابات من `dbo.DashboardAccounts`، كوكي `campusx_session` موقّع HttpOnly SameSite=Strict، scrypt للباسورد، `SessionVersion` لإبطال الجلسات القديمة، تحديد محاولات الدخول والتسجيل، وإدارة بيانات الحساب. |
+| `src/middleware/dashboardAuth.js` | **الحالي**: تسجيل دخول وتسجيل حسابات من `dbo.DashboardAccounts`، أدوار `user`/`admin`، كوكي `campusx_session` موقّع HttpOnly SameSite=Strict، scrypt للباسورد، `SessionVersion` لإبطال الجلسات القديمة، تحديد محاولات الدخول والتسجيل، وإدارة الحسابات من الأدمن. |
 
 ### 4.3 الـ Routes
 
@@ -139,7 +139,7 @@ POST /api/v1/commands  (session + X-API-Key)
 | --- | --- |
 | `src/routes/api.js` | أكبر ملف. كل endpoints `/api/v1/*`: health، db-check، dashboard summary، rooms/labs، nodes، device types، devices، metrics، capabilities، alert rules، telemetry، alerts، commands، states، occupancy، SSE stream. فيه كمان `closeStreams()` للـ shutdown. |
 | `src/routes/computerVision.js` | `GET /status`, `POST /start`, `POST /stop` تحت `/api/v1/computer-vision`. |
-| `src/routes/dashboardAccount.js` | `GET /account`, `PATCH /account/credentials` تحت `/auth`. |
+| `src/routes/dashboardAccount.js` | `GET /account`, `PATCH /account/credentials` تحت `/auth`، و`GET/PATCH/DELETE /auth/admin/accounts[/:id]` للأدمن. |
 | `src/routes/occupancyAutomation.js` | `GET /`, `PUT /` تحت `/api/v1/occupancy-automation`. يضبط إعدادات الأتمتة لكل غرفة. |
 
 ### 4.4 الـ Services
@@ -192,6 +192,7 @@ POST /api/v1/commands  (session + X-API-Key)
 | `public/control-panel.html` | لوحة التحكم: ريليهات، قواعد، سجل أوامر، إشغال، أتمتة، وCV manager (`control-cv-*`). البانر دلوقتي فيه **Refresh Data** فقط واختيار الغرفة من `lab-select-dropdown`. |
 | `public/command-history.html` | سجل الأوامر كامل مع pagination وفلترة حالة. |
 | `public/settings.html` | الحساب، تغيير البيانات، حالة الخدمات، الجلسة، SSE. |
+| `public/admin-accounts.html` | صفحة الأدمن لعرض كل الحسابات وتعديلها وحذفها (`admin-accounts.js` + `admin-accounts.css`). |
 | `public/README.md` | ملف تعريف صغير (place holder). |
 | `public/WhatsApp Image 2026-10-30 at 6.02.52 PM.jpeg` | صورة خلفية لصفحةLogin (مستخدمة من `style.css`). |
 
@@ -280,7 +281,7 @@ POST /api/v1/commands  (session + X-API-Key)
 
 ## 8. مجلد `scripts/` — الأدوات والاختبارات
 
-اتشالت سكربتات `apply-*.ps1` لأنها كانت برامج تركيب لمرة واحدة ونتيجتها مدمجة في الكود الحالي. المتبقّي أدوات فعّالة زي `setup-dashboard-auth.ps1`, `register-smoke.js`, `smoke.js`, و`syntax-check.js`.
+اتشالت سكربتات `apply-*.ps1` لأنها كانت برامج تركيب لمرة واحدة ونتيجتها مدمجة في الكود الحالي. المتبقّي أدوات فعّالة زي `setup-dashboard-auth.ps1`, `register-smoke.js`, `admin-smoke.js`, `smoke.js`, و`syntax-check.js`.
 
 ---
 

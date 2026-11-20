@@ -18,8 +18,21 @@
       }
       const payload = await response.json();
       const username = payload?.user?.username || 'CampusX Operator';
+      const role = payload?.user?.role || 'user';
       const name = document.querySelector('.user-profile .user-info strong');
       if (name) name.textContent = username;
+      const roleLabel = document.getElementById('cx-header-role');
+      if (roleLabel && role === 'admin') roleLabel.textContent = 'Administrator';
+      const nav = document.querySelector('.sidebar-nav');
+      if (nav && role === 'admin' && !document.getElementById('nav-admin-accounts')) {
+        const link = document.createElement('a');
+        link.className = 'nav-item';
+        link.id = 'nav-admin-accounts';
+        link.href = '/admin-accounts.html';
+        link.innerHTML = '<i data-lucide="shield-check"></i><span>Accounts</span>';
+        nav.appendChild(link);
+        if (window.lucide) window.lucide.createIcons();
+      }
       return true;
     } catch {
       return false;

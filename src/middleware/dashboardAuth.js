@@ -97,6 +97,8 @@ function readSession(req) {
       accountId: account.accountId,
       username: account.username,
       email: account.email,
+      fullName: account.fullName,
+      role: account.role,
       expiresAt: data.expiresAt,
       issuedAt: data.issuedAt,
     };
@@ -192,6 +194,8 @@ function mapAccount(row) {
     username: String(row.Username),
     passwordHash: String(row.PasswordHash),
     email: row.Email ? String(row.Email) : null,
+    fullName: row.FullName ? String(row.FullName) : null,
+    role: row.Role === 'admin' ? 'admin' : 'user',
     sessionVersion: Number(row.SessionVersion || 1),
     createdAt: row.CreatedAt || null,
     updatedAt: row.UpdatedAt || null,
@@ -211,7 +215,10 @@ function cacheAccounts(rows) {
   }
 }
 async function ensureDashboardTable(pool) {
-  // Legacy email columns, when present, are left untouched.
+  // Legacy email columns, when present, are left untouched. Column additions and
+  // the check constraint are separate batches: SQL Server compiles a batch before
+  // executing it, so a CHECK (Role ...) cannot see a Role column added in the
+  // same batch.
   await pool.request().query(`
     IF OBJECT_ID(N'dbo.DashboardAccounts', N'U') IS NULL
     BEGIN
@@ -220,6 +227,9 @@ async function ensureDashboardTable(pool) {
         Username NVARCHAR(64) NOT NULL,
         PasswordHash NVARCHAR(300) NOT NULL,
         Email NVARCHAR(320) NULL,
+        FullName NVARCHAR(100) NULL,
+        Role NVARCHAR(20) NOT NULL CONSTRAINT DF_DashboardAccounts_Role DEFAULT (N'user')
+          CONSTRAINT CK_DashboardAccounts_Role CHECK (Role IN (N'user', N'admin')),
         SessionVersion INT NOT NULL CONSTRAINT DF_DashboardAccounts_SessionVersion DEFAULT (1),
         CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_DashboardAccounts_CreatedAt DEFAULT SYSUTCDATETIME(),
         UpdatedAt DATETIME2 NOT NULL CONSTRAINT DF_DashboardAccounts_UpdatedAt DEFAULT SYSUTCDATETIME(),
@@ -227,10 +237,27 @@ async function ensureDashboardTable(pool) {
         CONSTRAINT UQ_DashboardAccounts_Username UNIQUE (Username)
       );
     END;
-    ELSE IF COL_LENGTH(N'dbo.DashboardAccounts', N'Email') IS NULL
+    ELSE
     BEGIN
-      ALTER TABLE dbo.DashboardAccounts ADD Email NVARCHAR(320) NULL;
+      IF COL_LENGTH(N'dbo.DashboardAccounts', N'Email') IS NULL
+        ALTER TABLE dbo.DashboardAccounts ADD Email NVARCHAR(320) NULL;
+      IF COL_LENGTH(N'dbo.DashboardAccounts', N'FullName') IS NULL
+        ALTER TABLE dbo.DashboardAccounts ADD FullName NVARCHAR(100) NULL;
+      IF COL_LENGTH(N'dbo.DashboardAccounts', N'Role') IS NULL
+        ALTER TABLE dbo.DashboardAccounts ADD Role NVARCHAR(20) NOT NULL
+          CONSTRAINT DF_DashboardAccounts_Role DEFAULT (N'user');
     END;
+  `);
+  await pool.request().query(`
+    IF COL_LENGTH(N'dbo.DashboardAccounts', N'Role') IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM sys.check_constraints
+         WHERE parent_object_id = OBJECT_ID(N'dbo.DashboardAccounts') AND name = N'CK_DashboardAccounts_Role'
+       )
+      ALTER TABLE dbo.DashboardAccounts ADD CONSTRAINT CK_DashboardAccounts_Role
+        CHECK (Role IN (N'user', N'admin'));
+  `);
+  await pool.request().query(`
     IF COL_LENGTH(N'dbo.DashboardAccounts', N'Email') IS NOT NULL
        AND NOT EXISTS (
          SELECT 1 FROM sys.indexes
@@ -251,13 +278,59 @@ async function detectEmailColumn(pool) {
 async function loadAccounts(pool) {
   const emailField = emailColumnPresent ? ', Email' : ', NULL AS Email';
   const result = await pool.request().query(`
-    SELECT AccountId, Username, PasswordHash, SessionVersion, CreatedAt, UpdatedAt, LastLoginAt${emailField}
+    SELECT AccountId, Username, PasswordHash, SessionVersion, CreatedAt, UpdatedAt, LastLoginAt,
+           FullName, Role${emailField}
     FROM dbo.DashboardAccounts
     ORDER BY AccountId ASC
   `);
   cacheAccounts(result.recordset);
   return firstAccount();
 }
+async function ensureAdminAccount(pool) {
+  const explicitUsername = env.dashboardAdminUsername;
+  const explicitEmail = env.dashboardAdminEmail;
+  if (explicitUsername || explicitEmail) {
+    const request = pool.request();
+    const conditions = [];
+    if (explicitUsername) {
+      request.input('adminUsername', sql.NVarChar(64), explicitUsername);
+      conditions.push('Username = @adminUsername');
+    }
+    if (explicitEmail) {
+      request.input('adminEmail', sql.NVarChar(320), explicitEmail);
+      conditions.push('Email = @adminEmail');
+    }
+    // When both are configured they must identify the same account; a partial
+    // match must not promote an unrelated account by accident.
+    const where = conditions.join(' AND ');
+    await request.query(`
+      UPDATE dbo.DashboardAccounts SET Role = N'admin', UpdatedAt = SYSUTCDATETIME()
+      WHERE ${where}
+    `);
+    const check = await pool.request().query(`SELECT COUNT(*) AS AdminCount FROM dbo.DashboardAccounts WHERE Role = N'admin'`);
+    if (Number(check.recordset[0]?.AdminCount) === 0) {
+      console.warn('[Auth] DASHBOARD_ADMIN_USERNAME/EMAIL did not match an existing account; no admin was promoted.');
+    }
+    return;
+  }
+  const count = await pool.request().query(`SELECT COUNT(*) AS AdminCount FROM dbo.DashboardAccounts WHERE Role = N'admin'`);
+  if (Number(count.recordset[0]?.AdminCount) > 0) return;
+  const request = pool.request();
+  let where = '1 = 1';
+  if (env.dashboardUsername) {
+    request.input('bootstrapUsername', sql.NVarChar(64), env.dashboardUsername);
+    where = 'Username = @bootstrapUsername';
+  }
+  const promoted = await request.query(`
+    UPDATE TOP (1) dbo.DashboardAccounts
+    SET Role = N'admin', UpdatedAt = SYSUTCDATETIME()
+    WHERE ${where};
+    SELECT TOP (1) Username FROM dbo.DashboardAccounts WHERE Role = N'admin' ORDER BY AccountId ASC;
+  `);
+  const name = promoted.recordset[0]?.Username;
+  if (name) console.log(`[Auth] Promoted first dashboard account to admin (${name}).`);
+}
+
 async function initializeDashboardAuth(existingPool) {
   const pool = existingPool || await poolPromise;
   await ensureDashboardTable(pool);
@@ -284,6 +357,8 @@ async function initializeDashboardAuth(existingPool) {
     account = await loadAccounts(pool);
     console.log(`[Auth] Initial dashboard account migrated to SQL Server (${account.username}).`);
   }
+  await ensureAdminAccount(pool);
+  account = await loadAccounts(pool);
   if (account && sessionSecret().length < 32) {
     throw new Error('DASHBOARD_SESSION_SECRET must contain at least 32 characters.');
   }
@@ -304,7 +379,14 @@ async function loginHandler(req, res) {
   const username = String(req.body?.username || '').trim();
   const password = String(req.body?.password || '');
   const key = username.toLowerCase();
-  const account = accountsByUsername.get(key) || accountsByEmail.get(key);
+  let account = accountsByUsername.get(key) || accountsByEmail.get(key);
+  if (!account) {
+    // Accounts may be created directly in SQL by an administrator. Refresh the
+    // read-only cache once so a valid login is not rejected as stale data.
+    const db = await poolPromise;
+    await loadAccounts(db);
+    account = accountsByUsername.get(key) || accountsByEmail.get(key);
+  }
   if (!account || !verifyPassword(password, account.passwordHash)) {
     recordFailedLogin(ip);
     return res.status(401).json({ status: 'error', error: { code: 'INVALID_CREDENTIALS', message: 'Username or password is incorrect.' } });
@@ -318,7 +400,7 @@ async function loginHandler(req, res) {
   const expiresAt = setSessionCookie(res, fresh);
   return res.json({
     status: 'ok',
-    user: { accountId: fresh.accountId, username: fresh.username, email: fresh.email },
+    user: { accountId: fresh.accountId, username: fresh.username, email: fresh.email, fullName: fresh.fullName, role: fresh.role },
     expiresAt,
     redirectTo: '/dashboard',
   });
@@ -334,7 +416,13 @@ function sessionHandler(req, res) {
   if (!req.dashboardUser) return res.status(401).json({ status: 'error', error: { code: 'AUTH_REQUIRED', message: 'Please sign in to CampusX.' } });
   return res.json({
     status: 'ok',
-    user: { accountId: req.dashboardUser.accountId, username: req.dashboardUser.username, email: req.dashboardUser.email },
+    user: {
+      accountId: req.dashboardUser.accountId,
+      username: req.dashboardUser.username,
+      email: req.dashboardUser.email,
+      fullName: req.dashboardUser.fullName,
+      role: req.dashboardUser.role,
+    },
     expiresAt: req.dashboardUser.expiresAt,
   });
 }
@@ -423,12 +511,14 @@ async function registerHandler(req, res) {
         .input('username', sql.NVarChar(64), username)
         .input('passwordHash', sql.NVarChar(300), passwordHash)
         .input('email', sql.NVarChar(320), email)
-        .query(`INSERT INTO dbo.DashboardAccounts (Username, PasswordHash, Email) VALUES (@username, @passwordHash, @email)`);
+        .input('fullName', sql.NVarChar(100), fullName)
+        .query(`INSERT INTO dbo.DashboardAccounts (Username, PasswordHash, Email, FullName) VALUES (@username, @passwordHash, @email, @fullName)`);
     } else {
       await pool.request()
         .input('username', sql.NVarChar(64), username)
         .input('passwordHash', sql.NVarChar(300), passwordHash)
-        .query(`INSERT INTO dbo.DashboardAccounts (Username, PasswordHash) VALUES (@username, @passwordHash)`);
+        .input('fullName', sql.NVarChar(100), fullName)
+        .query(`INSERT INTO dbo.DashboardAccounts (Username, PasswordHash, FullName) VALUES (@username, @passwordHash, @fullName)`);
     }
   } catch (error) {
     if (error.number === 2627 || error.number === 2601) {
@@ -447,7 +537,7 @@ async function registerHandler(req, res) {
   return res.status(201).json({
     status: 'ok',
     message: 'Account created and signed in.',
-    user: { accountId: fresh.accountId, username: fresh.username, email: fresh.email },
+    user: { accountId: fresh.accountId, username: fresh.username, email: fresh.email, fullName: fresh.fullName, role: fresh.role },
     expiresAt,
     redirectTo: '/dashboard',
   });
@@ -458,7 +548,7 @@ async function getAccountHandler(req, res) {
   if (!req.dashboardUser) return res.status(401).json({ status: 'error', error: { code: 'AUTH_REQUIRED', message: 'Please sign in.' } });
   const pool = await poolPromise;
   const result = await pool.request().input('accountId', sql.Int, req.dashboardUser.accountId).query(`
-    SELECT AccountId, Username${emailColumnPresent ? ', Email' : ', NULL AS Email'}, CreatedAt, UpdatedAt, LastLoginAt
+    SELECT AccountId, Username, FullName, Role${emailColumnPresent ? ', Email' : ', NULL AS Email'}, CreatedAt, UpdatedAt, LastLoginAt
     FROM dbo.DashboardAccounts WHERE AccountId = @accountId
   `);
   if (!result.recordset.length) return res.status(404).json({ status: 'error', error: { code: 'ACCOUNT_NOT_FOUND', message: 'Dashboard account was not found.' } });
@@ -470,6 +560,8 @@ async function getAccountHandler(req, res) {
       accountCode: `CX-${String(row.AccountId).padStart(4, '0')}`,
       username: row.Username,
       email: row.Email || null,
+      fullName: row.FullName || null,
+      role: row.Role === 'admin' ? 'admin' : 'user',
       createdAt: row.CreatedAt || null,
       updatedAt: row.UpdatedAt || null,
       lastLoginAt: row.LastLoginAt || null,
@@ -513,7 +605,7 @@ async function updateCredentialsHandler(req, res) {
     return res.json({
       status: 'ok',
       message: 'Account credentials updated. Other active sessions have been revoked.',
-      user: { accountId: fresh.accountId, username: fresh.username, email: fresh.email },
+      user: { accountId: fresh.accountId, username: fresh.username, email: fresh.email, fullName: fresh.fullName, role: fresh.role },
       expiresAt,
     });
   } catch (error) {
@@ -521,6 +613,157 @@ async function updateCredentialsHandler(req, res) {
     throw error;
   }
 }
+function publicAdminAccount(row) {
+  return {
+    accountId: Number(row.AccountId),
+    accountCode: `CX-${String(row.AccountId).padStart(4, '0')}`,
+    username: String(row.Username),
+    email: row.Email ? String(row.Email) : null,
+    fullName: row.FullName ? String(row.FullName) : null,
+    role: row.Role === 'admin' ? 'admin' : 'user',
+    createdAt: row.CreatedAt || null,
+    updatedAt: row.UpdatedAt || null,
+    lastLoginAt: row.LastLoginAt || null,
+  };
+}
+async function countAdminAccounts(pool) {
+  const result = await pool.request().query(`SELECT COUNT(*) AS AdminCount FROM dbo.DashboardAccounts WHERE Role = N'admin'`);
+  return Number(result.recordset[0]?.AdminCount || 0);
+}
+function requireAdminApi(req, res, next) {
+  if (!req.dashboardUser) return res.status(401).json({ status: 'error', error: { code: 'AUTH_REQUIRED', message: 'Please sign in.' } });
+  if (req.dashboardUser.role !== 'admin') {
+    return res.status(403).json({ status: 'error', error: { code: 'ADMIN_REQUIRED', message: 'Administrator access is required.' } });
+  }
+  next();
+}
+function requireAdminPage(req, res, next) {
+  if (!req.dashboardUser) {
+    const nextPath = encodeURIComponent(`${req.path}${req.url.includes('?') ? req.url.slice(req.path.length) : ''}`);
+    return res.redirect(`/login.html?next=${nextPath}`);
+  }
+  if (req.dashboardUser.role !== 'admin') return res.redirect('/dashboard?admin=denied');
+  next();
+}
+async function adminListAccountsHandler(req, res) {
+  const pool = await poolPromise;
+  await ensureDashboardTable(pool);
+  const result = await pool.request().query(`
+    SELECT AccountId, Username, Email, FullName, Role, CreatedAt, UpdatedAt, LastLoginAt
+    FROM dbo.DashboardAccounts
+    ORDER BY AccountId ASC
+  `);
+  const accounts = result.recordset.map(publicAdminAccount);
+  return res.set('Cache-Control', 'no-store').json({ status: 'ok', count: accounts.length, accounts });
+}
+async function adminUpdateAccountHandler(req, res) {
+  if (rejectCrossSite(req, res)) return;
+  const accountId = Number(req.params.id);
+  if (!Number.isInteger(accountId) || accountId <= 0) {
+    return res.status(400).json({ status: 'error', error: { code: 'VALIDATION_ERROR', message: 'A valid account id is required.' } });
+  }
+  const pool = await poolPromise;
+  await ensureDashboardTable(pool);
+  const found = await pool.request()
+    .input('accountId', sql.Int, accountId)
+    .query(`SELECT AccountId, Username, Email, FullName, Role FROM dbo.DashboardAccounts WHERE AccountId = @accountId`);
+  if (!found.recordset.length) {
+    return res.status(404).json({ status: 'error', error: { code: 'ACCOUNT_NOT_FOUND', message: 'Dashboard account was not found.' } });
+  }
+  const target = found.recordset[0];
+  const currentRole = target.Role === 'admin' ? 'admin' : 'user';
+  const username = req.body?.username === undefined ? String(target.Username) : String(req.body.username).trim();
+  const emailRaw = req.body?.email === undefined ? (target.Email || '') : String(req.body.email ?? '').trim().toLowerCase();
+  const email = emailRaw || null;
+  const fullNameRaw = req.body?.fullName === undefined ? (target.FullName || '') : String(req.body.fullName ?? '').trim();
+  const fullName = fullNameRaw || null;
+  const role = req.body?.role === undefined ? currentRole : String(req.body.role).trim().toLowerCase();
+  const newPassword = String(req.body?.newPassword || '');
+
+  if (!USERNAME_PATTERN.test(username)) {
+    return res.status(400).json({ status: 'error', error: { code: 'INVALID_USERNAME', message: 'Username must be 3-64 characters using letters, numbers, dot, underscore, @ or hyphen.' } });
+  }
+  if (email && (!EMAIL_PATTERN.test(email) || email.length > 320)) {
+    return res.status(400).json({ status: 'error', error: { code: 'INVALID_EMAIL', message: 'Enter a valid email address or leave it empty.' } });
+  }
+  if (fullName && fullName.length > 100) {
+    return res.status(400).json({ status: 'error', error: { code: 'INVALID_FULL_NAME', message: 'Full name must be at most 100 characters.' } });
+  }
+  if (role !== 'user' && role !== 'admin') {
+    return res.status(400).json({ status: 'error', error: { code: 'INVALID_ROLE', message: 'Role must be user or admin.' } });
+  }
+  if (newPassword && (newPassword.length < 12 || newPassword.length > 128)) {
+    return res.status(400).json({ status: 'error', error: { code: 'INVALID_PASSWORD_LENGTH', message: 'Password must be between 12 and 128 characters.' } });
+  }
+  if (currentRole === 'admin' && role !== 'admin' && await countAdminAccounts(pool) <= 1) {
+    return res.status(400).json({ status: 'error', error: { code: 'LAST_ADMIN', message: 'At least one administrator account must remain.' } });
+  }
+
+  const sets = [
+    'Username = @username',
+    'Email = @email',
+    'FullName = @fullName',
+    'Role = @role',
+    'SessionVersion = SessionVersion + 1',
+    'UpdatedAt = SYSUTCDATETIME()',
+  ];
+  const request = pool.request()
+    .input('accountId', sql.Int, accountId)
+    .input('username', sql.NVarChar(64), username)
+    .input('email', sql.NVarChar(320), email)
+    .input('fullName', sql.NVarChar(100), fullName)
+    .input('role', sql.NVarChar(20), role);
+  if (newPassword) {
+    sets.push('PasswordHash = @passwordHash');
+    request.input('passwordHash', sql.NVarChar(300), hashPassword(newPassword));
+  }
+  try {
+    const updated = await request.query(`
+      UPDATE dbo.DashboardAccounts
+      SET ${sets.join(', ')}
+      OUTPUT inserted.AccountId, inserted.Username, inserted.Email, inserted.FullName, inserted.Role,
+             inserted.CreatedAt, inserted.UpdatedAt, inserted.LastLoginAt
+      WHERE AccountId = @accountId
+    `);
+    await loadAccounts(pool);
+    return res.json({
+      status: 'ok',
+      message: 'Account updated. Its active sessions were revoked.',
+      account: publicAdminAccount(updated.recordset[0]),
+    });
+  } catch (error) {
+    if (error.number === 2627 || error.number === 2601) {
+      return res.status(409).json({ status: 'error', error: { code: 'ACCOUNT_CONFLICT', message: 'That username or email is already in use.' } });
+    }
+    throw error;
+  }
+}
+async function adminDeleteAccountHandler(req, res) {
+  if (rejectCrossSite(req, res)) return;
+  const accountId = Number(req.params.id);
+  if (!Number.isInteger(accountId) || accountId <= 0) {
+    return res.status(400).json({ status: 'error', error: { code: 'VALIDATION_ERROR', message: 'A valid account id is required.' } });
+  }
+  if (accountId === Number(req.dashboardUser.accountId)) {
+    return res.status(400).json({ status: 'error', error: { code: 'CANNOT_DELETE_SELF', message: 'You cannot delete the account you are signed in with.' } });
+  }
+  const pool = await poolPromise;
+  await ensureDashboardTable(pool);
+  const found = await pool.request()
+    .input('accountId', sql.Int, accountId)
+    .query(`SELECT AccountId, Username, Role FROM dbo.DashboardAccounts WHERE AccountId = @accountId`);
+  if (!found.recordset.length) {
+    return res.status(404).json({ status: 'error', error: { code: 'ACCOUNT_NOT_FOUND', message: 'Dashboard account was not found.' } });
+  }
+  if (found.recordset[0].Role === 'admin' && await countAdminAccounts(pool) <= 1) {
+    return res.status(400).json({ status: 'error', error: { code: 'LAST_ADMIN', message: 'At least one administrator account must remain.' } });
+  }
+  await pool.request().input('accountId', sql.Int, accountId)
+    .query('DELETE FROM dbo.DashboardAccounts WHERE AccountId = @accountId');
+  await loadAccounts(pool);
+  return res.json({ status: 'ok', message: `Account ${found.recordset[0].Username} was deleted.` });
+}
+
 module.exports = {
   isAuthConfigured,
   initializeDashboardAuth,
@@ -531,6 +774,11 @@ module.exports = {
   sessionHandler,
   requireDashboardPage,
   requireDashboardApi,
+  requireAdminPage,
+  requireAdminApi,
   getAccountHandler,
   updateCredentialsHandler,
+  adminListAccountsHandler,
+  adminUpdateAccountHandler,
+  adminDeleteAccountHandler,
 };

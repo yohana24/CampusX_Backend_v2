@@ -13,6 +13,7 @@
     "check:connections": "node scripts/check-connections.js",
     "smoke": "node scripts/smoke.js",
     "test:register": "node scripts/register-smoke.js",
+    "test:admin": "node scripts/admin-smoke.js",
     "verify": "npm run check && npm run smoke"
   },
   "engines": {

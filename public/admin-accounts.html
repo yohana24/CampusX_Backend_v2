@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus X - Account Administration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/dashboard-live.css">
+    <link rel="stylesheet" href="/dashboard-ui-refresh.css?v=20261120">
+    <link rel="stylesheet" href="/admin-accounts.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-section">
+                <i data-lucide="radio" class="logo-icon"></i>
+                <div class="logo-text">
+                    <h2>Campus X</h2>
+                    <span>TELEMETRY HUB</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="nav-item" href="/dashboard"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+                <a class="nav-item" href="/labs.html"><i data-lucide="building-2"></i><span>Labs</span></a>
+                <a class="nav-item" href="/devices.html"><i data-lucide="cpu"></i><span>Devices</span></a>
+                <a class="nav-item" href="/alerts.html"><i data-lucide="bell"></i><span>Alerts</span></a>
+                <a class="nav-item" href="/control-panel.html"><i data-lucide="sliders-horizontal"></i><span>Control Panel</span></a>
+                <a class="nav-item" href="/command-history.html"><i data-lucide="history"></i><span>Command History</span></a>
+                <a class="nav-item" href="/settings.html"><i data-lucide="settings"></i><span>Settings</span></a>
+                <a class="nav-item active" id="nav-admin-accounts" href="/admin-accounts.html" aria-current="page"><i data-lucide="shield-check"></i><span>Accounts</span></a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="system-status-box">
+                    <small>ACCESS LEVEL</small>
+                    <div class="sys-row"><span>Role</span> <strong id="cx-side-role">Administrator</strong></div>
+                    <div class="sys-row"><span>Scope</span> <strong>All SQL accounts</strong></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="mobile-toggle-btn" type="button" aria-label="Open navigation"><i data-lucide="menu"></i></button>
+                    <div class="cx-settings-scope">
+                        <strong>Account Governance</strong>
+                        <small>SQL-backed dashboard accounts • administrators only</small>
+                    </div>
+                </div>
+                <div class="header-right-group">
+                    <button class="icon-btn" id="theme-toggle" title="Toggle Theme"><i data-lucide="moon"></i></button>
+                    <div class="user-profile">
+                        <div class="user-info">
+                            <strong id="cx-header-username">Loading account…</strong>
+                            <small id="cx-header-role">Administrator</small>
+                        </div>
+                        <div class="avatar"><i data-lucide="user"></i></div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="page-title-banner">
+                <div>
+                    <div class="title-with-badge">
+                        <h1>Dashboard Accounts</h1>
+                        <span class="ver-badge">ADMIN ONLY</span>
+                    </div>
+                    <p class="subtitle-text">View, edit roles and credentials, or remove dashboard accounts. SQL Server remains the source of truth.</p>
+                </div>
+                <div class="banner-actions">
+                    <button class="btn-secondary-sm" id="admin-refresh" type="button"><i data-lucide="refresh-cw"></i> Refresh</button>
+                </div>
+            </div>
+
+            <div class="admin-card">
+                <div class="card-header-bar">
+                    <div class="header-title-group">
+                        <i data-lucide="users" class="blue-text"></i>
+                        <div>
+                            <h3>Registered accounts</h3>
+                            <p id="admin-account-count">Loading…</p>
+                        </div>
+                    </div>
+                    <span class="sec-badge" id="admin-load-state">LOADING</span>
+                </div>
+                <div class="card-body-content">
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Username</th>
+                                    <th>Full name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Last login</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-accounts-body">
+                                <tr><td colspan="7" class="admin-empty">Loading accounts…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer-action">
+                        <small id="admin-error" class="admin-error" hidden></small>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="admin-modal" id="admin-modal" hidden>
+        <div class="admin-modal-backdrop" data-close-modal></div>
+        <div class="admin-modal-panel" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+            <div class="admin-modal-header">
+                <div>
+                    <h3 id="admin-modal-title">Edit account</h3>
+                    <p id="admin-modal-subtitle">Changes revoke the account's active sessions.</p>
+                </div>
+                <button class="icon-btn" type="button" data-close-modal aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <form id="admin-edit-form">
+                <label>Full name<input id="admin-edit-fullname" name="fullName" maxlength="100" autocomplete="off"></label>
+                <label>Username<input id="admin-edit-username" name="username" maxlength="64" autocomplete="off" required></label>
+                <label>Email<input id="admin-edit-email" name="email" type="email" maxlength="320" autocomplete="off"></label>
+                <label>Role
+                    <select id="admin-edit-role" name="role">
+                        <option value="user">User</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </label>
+                <label>New password <span class="admin-hint">optional, 12+ characters</span>
+                    <input id="admin-edit-password" name="newPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password">
+                </label>
+                <p class="admin-error" id="admin-form-error" hidden></p>
+                <div class="admin-modal-actions">
+                    <button class="btn-secondary-sm" type="button" data-close-modal>Cancel</button>
+                    <button class="btn-primary-sm" type="submit">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/auth-client.js"></script>
+    <script src="/admin-accounts.js"></script>
+    <script>
+        if (window.lucide) window.lucide.createIcons();
+    </script>
+</body>
+</html>

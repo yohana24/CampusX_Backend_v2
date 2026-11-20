@@ -18,6 +18,7 @@ const {
   sessionHandler,
   requireDashboardPage,
   requireDashboardApi,
+  requireAdminPage,
 } = require('./middleware/dashboardAuth');
 
 const app = express();
@@ -30,6 +31,9 @@ const pageFiles = new Map([
   ['/control-panel.html', 'control-panel.html'],
   ['/command-history.html', 'command-history.html'],
   ['/settings.html', 'settings.html'],
+]);
+const adminPageFiles = new Map([
+  ['/admin-accounts.html', 'admin-accounts.html'],
 ]);
 const dashboardAccountRoutes = require('./routes/dashboardAccount');
 app.disable('x-powered-by');
@@ -76,6 +80,9 @@ app.get('/', (req, res) => {
 app.get('/dashboard', requireDashboardPage, sendDashboardPage('index.html'));
 for (const [route, fileName] of pageFiles) {
   app.get(route, requireDashboardPage, sendDashboardPage(fileName));
+}
+for (const [route, fileName] of adminPageFiles) {
+  app.get(route, requireDashboardPage, requireAdminPage, sendDashboardPage(fileName));
 }
 
 // Only the explicitly routed pages above may return HTML. Do not let express.static

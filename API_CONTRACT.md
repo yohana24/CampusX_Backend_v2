@@ -30,6 +30,9 @@ GET   /auth/session
 POST  /auth/logout
 GET   /auth/account
 PATCH /auth/account/credentials
+GET   /auth/admin/accounts
+PATCH /auth/admin/accounts/:id
+DELETE /auth/admin/accounts/:id
 ```
 
 `POST /auth/register` creates a real row in `dbo.DashboardAccounts` with an scrypt password hash, then sets the same signed session cookie as login and returns `redirectTo: "/dashboard"`. Passwords must be 12-128 characters. The generated username is the email when it fits the 64-character username rules, otherwise a sanitized local part; login accepts either the username or the email. Set `DASHBOARD_REGISTRATION_ENABLED=false` to close public signup while keeping existing accounts usable.
@@ -37,6 +40,8 @@ PATCH /auth/account/credentials
 The session cookie is `campusx_session`, `HttpOnly`, `SameSite=Strict`, and optionally `Secure`. Changing dashboard credentials increments `SessionVersion`, which invalidates previously issued cookies.
 
 Authentication is rate-limited per IP: 5 failed logins cause a 15-minute block (`429 LOGIN_TEMPORARILY_BLOCKED`), and 5 signup attempts per hour cause a 60-minute block (`429 REGISTRATION_TEMPORARILY_BLOCKED`). Both include a `Retry-After` header.
+
+Dashboard accounts have a `Role` of `user` or `admin`. Set `DASHBOARD_ADMIN_USERNAME` or `DASHBOARD_ADMIN_EMAIL` to choose the administrator (when both are set they must match the same account); if neither is set, the bootstrap/first account is promoted when no admin exists. Admins can list, edit and delete accounts through `/auth/admin/accounts*`. An admin cannot delete their own account, and the last admin cannot be demoted or deleted. Every admin edit increments `SessionVersion`, revoking that account's older sessions.
 
 ## 2. Response format
 
@@ -72,7 +77,13 @@ Common codes:
 | --- | --- |
 | `VALIDATION_ERROR` | Bad input shape/range |
 | `AUTH_REQUIRED` | No valid dashboard session |
+| `ADMIN_REQUIRED` | Session user is not an administrator |
 | `INVALID_CREDENTIALS` | Wrong username/email or password |
+| `ACCOUNT_NOT_FOUND` | Dashboard account does not exist |
+| `ACCOUNT_CONFLICT` | Username or email already in use |
+| `INVALID_ROLE` | Role must be `user` or `admin` |
+| `LAST_ADMIN` | Operation would remove the last administrator |
+| `CANNOT_DELETE_SELF` | An admin cannot delete their own account |
 | `AUTH_NOT_CONFIGURED` | SQL/auth bootstrap not ready yet |
 | `API_KEY_REQUIRED` | Missing `X-API-Key` |
 | `API_KEY_INVALID` | Supplied `X-API-Key` is wrong |
@@ -123,6 +134,34 @@ Example:
 ```bash
 curl http://127.0.0.1:3000/api/v1/health
 curl -b cookies.txt -H "X-API-Key: $API_KEY" http://127.0.0.1:3000/api/v1/db-check
+```
+
+### Administrator account management
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/auth/admin/accounts` | Lists all dashboard accounts. Never returns password hashes. |
+| PATCH | `/auth/admin/accounts/:id` | Edits `fullName`, `username`, `email`, `role` and optional `newPassword`; revokes the target's sessions. |
+| DELETE | `/auth/admin/accounts/:id` | Deletes a dashboard account. Self-delete and deleting the last admin are rejected. |
+
+Example response for the list endpoint:
+
+```json
+{
+  "status": "ok",
+  "count": 2,
+  "accounts": [
+    {
+      "accountId": 1,
+      "accountCode": "CX-0001",
+      "username": "admin@campus.test",
+      "fullName": "Campus Administrator",
+      "email": "admin@campus.test",
+      "role": "admin",
+      "lastLoginAt": "2026-11-20T10:00:00.000Z"
+    }
+  ]
+}
 ```
 
 ### Rooms

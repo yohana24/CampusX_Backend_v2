@@ -118,4 +118,6 @@ module.exports = Object.freeze({
   dashboardCookieSecure: booleanFromEnv('DASHBOARD_COOKIE_SECURE', false),
   dashboardUsername: String(process.env.DASHBOARD_USERNAME || '').trim(),
   dashboardPasswordHash: String(process.env.DASHBOARD_PASSWORD_HASH || '').trim(),
+  dashboardAdminUsername: String(process.env.DASHBOARD_ADMIN_USERNAME || '').trim(),
+  dashboardAdminEmail: String(process.env.DASHBOARD_ADMIN_EMAIL || '').trim().toLowerCase(),
 });
