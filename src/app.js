@@ -34,7 +34,7 @@ const pageFiles = new Map([
 const dashboardAccountRoutes = require('./routes/dashboardAccount');
 app.disable('x-powered-by');
 app.use(securityMiddleware);
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb', strict: true }));
+app.use(express.json({ limit: env.jsonBodyLimit, strict: true }));
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 app.use(sessionMiddleware);
 // Authentication endpoints. Login page remains public; dashboard and API do not.

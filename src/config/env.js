@@ -110,5 +110,12 @@ module.exports = Object.freeze({
   forceExitTimeoutMs: numberFromEnv('FORCE_EXIT_TIMEOUT_MS', 15000, 1000, 120000),
 
   strictHealth: booleanFromEnv('STRICT_HEALTH', false),
+  publicOrigin: String(process.env.PUBLIC_ORIGIN || '').trim().replace(/\/+$/, ''),
+  jsonBodyLimit: String(process.env.JSON_BODY_LIMIT || '1mb').trim(),
   dashboardRegistrationEnabled: booleanFromEnv('DASHBOARD_REGISTRATION_ENABLED', true),
+  dashboardSessionSecret: String(process.env.DASHBOARD_SESSION_SECRET || '').trim(),
+  dashboardSessionHours: numberFromEnv('DASHBOARD_SESSION_HOURS', 8, 1, 24),
+  dashboardCookieSecure: booleanFromEnv('DASHBOARD_COOKIE_SECURE', false),
+  dashboardUsername: String(process.env.DASHBOARD_USERNAME || '').trim(),
+  dashboardPasswordHash: String(process.env.DASHBOARD_PASSWORD_HASH || '').trim(),
 });

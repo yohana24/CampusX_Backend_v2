@@ -6,6 +6,10 @@ const env = require('../config/env');
 
 const COOKIE_NAME = 'campusx_session';
 const loginAttempts = new Map();
+const registrationAttempts = new Map();
+const MAX_ATTEMPT_KEYS = 5000;
+const REGISTRATION_WINDOW_MS = 60 * 60 * 1000;
+const MAX_REGISTRATIONS_PER_IP = 5;
 
 // SQL is the source of truth. These maps are a read-only cache used to resolve
 // session cookies and login identifiers without a database round-trip.
@@ -15,15 +19,9 @@ const accountsByEmail = new Map(); // lowercase email -> account
 let emailColumnPresent = false;
 let authTablesReady = false;
 
-function sessionHours() {
-  const value = Number(process.env.DASHBOARD_SESSION_HOURS || 8);
-  return Number.isFinite(value) ? Math.min(24, Math.max(1, value)) : 8;
-}
-function sessionMaxAgeSeconds() { return sessionHours() * 60 * 60; }
-function sessionSecret() { return String(process.env.DASHBOARD_SESSION_SECRET || '').trim(); }
-function cookieSecure() {
-  return String(process.env.DASHBOARD_COOKIE_SECURE || 'false').toLowerCase() === 'true';
-}
+function sessionMaxAgeSeconds() { return env.dashboardSessionHours * 60 * 60; }
+function sessionSecret() { return env.dashboardSessionSecret; }
+function cookieSecure() { return env.dashboardCookieSecure; }
 function firstAccount() {
   return accountsById.values().next().value || null;
 }
@@ -110,6 +108,14 @@ function sessionMiddleware(req, res, next) {
   req.dashboardUser = readSession(req);
   next();
 }
+function pruneAttemptMap(map) {
+  if (map.size <= MAX_ATTEMPT_KEYS) return;
+  let toRemove = map.size - MAX_ATTEMPT_KEYS + 1;
+  for (const key of map.keys()) {
+    map.delete(key);
+    if (--toRemove <= 0) break;
+  }
+}
 function clearLoginAttempt(ip) { loginAttempts.delete(ip); }
 function checkLoginRate(ip) {
   const entry = loginAttempts.get(ip);
@@ -128,6 +134,25 @@ function recordFailedLogin(ip) {
     current.failures = 0;
   }
   loginAttempts.set(ip, current);
+  pruneAttemptMap(loginAttempts);
+}
+function checkRegistrationRate(ip) {
+  const entry = registrationAttempts.get(ip);
+  if (!entry || entry.expiresAt <= Date.now()) return { blocked: false };
+  if (entry.count >= MAX_REGISTRATIONS_PER_IP) {
+    return { blocked: true, retryAfter: Math.ceil((entry.expiresAt - Date.now()) / 1000) };
+  }
+  return { blocked: false };
+}
+function recordRegistrationAttempt(ip) {
+  const now = Date.now();
+  const current = registrationAttempts.get(ip);
+  const entry = !current || current.expiresAt <= now
+    ? { count: 0, expiresAt: now + REGISTRATION_WINDOW_MS }
+    : current;
+  entry.count += 1;
+  registrationAttempts.set(ip, entry);
+  pruneAttemptMap(registrationAttempts);
 }
 function verifyPassword(password, encodedHash) {
   const value = String(encodedHash || '');
@@ -153,7 +178,7 @@ function rejectCrossSite(req, res) {
     return true;
   }
   const origin = req.get('origin');
-  const expectedOrigin = `${req.protocol}://${req.get('host')}`;
+  const expectedOrigin = env.publicOrigin || `${req.protocol}://${req.get('host')}`;
   if (origin && origin !== expectedOrigin) {
     res.status(403).json({ status: 'error', error: { code: 'INVALID_ORIGIN', message: 'Authentication request origin does not match this server.' } });
     return true;
@@ -194,12 +219,26 @@ async function ensureDashboardTable(pool) {
         AccountId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_DashboardAccounts PRIMARY KEY,
         Username NVARCHAR(64) NOT NULL,
         PasswordHash NVARCHAR(300) NOT NULL,
+        Email NVARCHAR(320) NULL,
         SessionVersion INT NOT NULL CONSTRAINT DF_DashboardAccounts_SessionVersion DEFAULT (1),
         CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_DashboardAccounts_CreatedAt DEFAULT SYSUTCDATETIME(),
         UpdatedAt DATETIME2 NOT NULL CONSTRAINT DF_DashboardAccounts_UpdatedAt DEFAULT SYSUTCDATETIME(),
         LastLoginAt DATETIME2 NULL,
         CONSTRAINT UQ_DashboardAccounts_Username UNIQUE (Username)
       );
+    END;
+    ELSE IF COL_LENGTH(N'dbo.DashboardAccounts', N'Email') IS NULL
+    BEGIN
+      ALTER TABLE dbo.DashboardAccounts ADD Email NVARCHAR(320) NULL;
+    END;
+    IF COL_LENGTH(N'dbo.DashboardAccounts', N'Email') IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM sys.indexes
+         WHERE object_id = OBJECT_ID(N'dbo.DashboardAccounts') AND name = N'UX_DashboardAccounts_Email'
+       )
+    BEGIN
+      CREATE UNIQUE INDEX UX_DashboardAccounts_Email
+        ON dbo.DashboardAccounts(Email) WHERE Email IS NOT NULL;
     END;
   `);
   authTablesReady = true;
@@ -225,8 +264,8 @@ async function initializeDashboardAuth(existingPool) {
   await detectEmailColumn(pool);
   let account = await loadAccounts(pool);
   if (!account) {
-    const bootstrapUsername = String(process.env.DASHBOARD_USERNAME || '').trim();
-    const bootstrapHash = String(process.env.DASHBOARD_PASSWORD_HASH || '').trim();
+    const bootstrapUsername = env.dashboardUsername;
+    const bootstrapHash = env.dashboardPasswordHash;
     if (!bootstrapUsername || !bootstrapHash || sessionSecret().length < 32) {
       console.warn('[Auth] No dashboard account found. Configure bootstrap DASHBOARD_USERNAME, DASHBOARD_PASSWORD_HASH and DASHBOARD_SESSION_SECRET, or use /register.html.');
       return false;
@@ -250,18 +289,6 @@ async function initializeDashboardAuth(existingPool) {
   }
   if (account) console.log(`[Auth] Dashboard accounts ready: ${accountsById.size} (${account.username})`);
   return Boolean(account);
-}
-function publicAccount(account = firstAccount()) {
-  if (!account) return null;
-  return {
-    accountId: account.accountId,
-    accountCode: `CX-${String(account.accountId).padStart(4, '0')}`,
-    username: account.username,
-    email: account.email,
-    createdAt: account.createdAt,
-    updatedAt: account.updatedAt,
-    lastLoginAt: account.lastLoginAt,
-  };
 }
 async function loginHandler(req, res) {
   if (!isAuthConfigured()) {
@@ -355,6 +382,14 @@ async function registerHandler(req, res) {
   if (sessionSecret().length < 32) {
     return res.status(503).json({ status: 'error', error: { code: 'AUTH_NOT_CONFIGURED', message: 'DASHBOARD_SESSION_SECRET must be configured before accounts can be created.' } });
   }
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const rate = checkRegistrationRate(ip);
+  if (rate.blocked) {
+    res.setHeader('Retry-After', String(rate.retryAfter));
+    return res.status(429).json({ status: 'error', error: { code: 'REGISTRATION_TEMPORARILY_BLOCKED', message: 'Too many signup attempts. Try again later.' } });
+  }
+  recordRegistrationAttempt(ip);
+
   const fullName = String(req.body?.fullName ?? '').trim();
   const email = String(req.body?.universityEmail ?? req.body?.email ?? '').trim().toLowerCase();
   const password = String(req.body?.password ?? '');
@@ -419,7 +454,8 @@ async function registerHandler(req, res) {
 }
 
 async function getAccountHandler(req, res) {
-  if (!isAuthConfigured() || !req.dashboardUser) return res.status(401).json({ status: 'error', error: { code: 'AUTH_REQUIRED', message: 'Please sign in.' } });
+  if (!isAuthConfigured()) return res.status(503).json({ status: 'error', error: { code: 'AUTH_NOT_CONFIGURED', message: 'Dashboard authentication is not initialized.' } });
+  if (!req.dashboardUser) return res.status(401).json({ status: 'error', error: { code: 'AUTH_REQUIRED', message: 'Please sign in.' } });
   const pool = await poolPromise;
   const result = await pool.request().input('accountId', sql.Int, req.dashboardUser.accountId).query(`
     SELECT AccountId, Username${emailColumnPresent ? ', Email' : ', NULL AS Email'}, CreatedAt, UpdatedAt, LastLoginAt
@@ -485,9 +521,6 @@ async function updateCredentialsHandler(req, res) {
     throw error;
   }
 }
-function getCachedAccount() { return publicAccount(firstAccount()); }
-function getCurrentAccountInternal() { return firstAccount(); }
-
 module.exports = {
   isAuthConfigured,
   initializeDashboardAuth,
@@ -498,8 +531,6 @@ module.exports = {
   sessionHandler,
   requireDashboardPage,
   requireDashboardApi,
-  publicAccount: getCachedAccount,
-  getCurrentAccountInternal,
   getAccountHandler,
   updateCredentialsHandler,
 };

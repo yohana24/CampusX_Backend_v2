@@ -96,7 +96,7 @@
     setText('cx-account-status', 'Authenticated account · Active session');
     if ($('cx-account-username')) $('cx-account-username').value = username;
     if ($('cx-account-status-field')) $('cx-account-status-field').value = 'Active';
-    if ($('cx-account-id-role')) $('cx-account-id-role').value = `${account.accountCode || `CX-${account.accountId || '—'}`} · CampusX Operator · Single account`;
+    if ($('cx-account-id-role')) $('cx-account-id-role').value = `${account.accountCode || `CX-${account.accountId || '—'}`} · CampusX Operator · SQL account`;
     setText('cx-account-updated', `Last updated: ${dateText(account.updatedAt)} · Last login: ${dateText(account.lastLoginAt)}`);
     setText('cx-header-username', username);
     setText('cx-header-role', 'CampusX Operator');

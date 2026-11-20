@@ -147,6 +147,7 @@ router.get('/health', asyncHandler(async (req, res) => {
       databaseError = error.message;
     }
   }
+  if (databaseError) console.error('[Health] Database check failed:', databaseError);
   const mqtt = mqttClient.connected ? 'connected' : 'disconnected';
   const healthy = database === 'connected' && mqtt === 'connected';
   const strict = ['1', 'true', 'yes'].includes(String(req.query.strict || '').toLowerCase()) || env.strictHealth;
@@ -157,7 +158,7 @@ router.get('/health', asyncHandler(async (req, res) => {
     database,
     mqtt,
     checks: {
-      database: { status: database, error: databaseError || undefined },
+      database: { status: database },
       mqtt: { status: mqtt, clientId: env.mqttClientId },
       auth: { configured: isAuthConfigured() },
     },

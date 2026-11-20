@@ -63,11 +63,13 @@ async function checkGet(name, path) {
   try {
     const response = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', origin: baseUrl },
       body: JSON.stringify({ username, password }),
     });
-    const setCookie = response.headers.get('set-cookie') || '';
-    cookie = setCookie.split(';')[0];
+    const cookies = typeof response.headers.getSetCookie === 'function'
+      ? response.headers.getSetCookie()
+      : [response.headers.get('set-cookie') || ''];
+    cookie = (cookies.find((value) => value.startsWith('campusx_session=')) || '').split(';')[0];
     report('Dashboard login', response.ok && Boolean(cookie), `HTTP ${response.status}`);
   } catch (error) {
     report('Dashboard login', false, error.message);

@@ -1,5 +1,7 @@
 'use strict';
 
+const env = require('../config/env');
+
 class HttpError extends Error {
   constructor(status, code, message) {
     super(message);
@@ -21,7 +23,7 @@ function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-va
     status: 'error',
     error: {
       code: err.code || (status === 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR'),
-      message: status === 500 && process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+      message: status === 500 && env.nodeEnv === 'production' ? 'Internal server error' : err.message,
     },
   });
 }

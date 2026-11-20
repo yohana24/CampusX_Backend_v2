@@ -1,1 +1,0 @@
-# CampusX-IoT-Diagnostics-Lab

@@ -21,7 +21,7 @@ const contract = {
     database: 'SQL Server (single source of truth)',
   },
   authentication: {
-    dashboard: 'Signed HttpOnly SameSite=Strict cookie from POST /auth/login',
+    dashboard: 'Signed HttpOnly SameSite=Strict cookie from POST /auth/login or POST /auth/register',
     apiKey: env.apiKey ? 'X-API-Key header required for non-health API routes' : 'Optional X-API-Key (not configured)',
     sse: 'Dashboard cookie required; X-API-Key header or ?apiKey= only for /api/v1/stream',
   },

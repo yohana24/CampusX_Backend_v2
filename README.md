@@ -59,6 +59,8 @@ All settings come from `.env` or process environment variables. There are no har
 | --- | --- | --- | --- |
 | HTTP | `HOST`, `PORT` | `127.0.0.1`, `3000` | Bind address. A non-loopback host requires `API_KEY`. |
 | HTTP | `STRICT_HEALTH` | `false` | If true, `/health` returns 503 while degraded. |
+| HTTP | `PUBLIC_ORIGIN` | empty | Public browser origin (for example `http://127.0.0.1:3000`) used for allowed same-origin/CORS requests and auth origin checks. |
+| HTTP | `JSON_BODY_LIMIT` | `1mb` | Maximum JSON request body size. |
 | SQL | `SQL_SERVER`, `SQL_DATABASE` | required | ODBC server and database. |
 | SQL | `SQL_TRUSTED_CONNECTION` | `true` | Windows auth. If false, `SQL_USERNAME`/`SQL_PASSWORD` are required. |
 | SQL | `SQL_DRIVER`, `SQL_ENCRYPT`, `SQL_TRUST_SERVER_CERTIFICATE` | ODBC Driver 18 / false / true | ODBC driver options. |
@@ -75,6 +77,8 @@ All settings come from `.env` or process environment variables. There are no har
 | Commands | `COMMAND_TYPES` | empty | Optional allowlist, e.g. `set_state,get_state,reboot`. |
 | Commands | `COMMAND_TIMEOUT_SECONDS`, `COMMAND_TIMEOUT_SWEEP_SECONDS` | 120, 30 | Unanswered `pending`/`sent` commands become `timeout` so automation cannot stay blocked. |
 | Auth | `DASHBOARD_USERNAME`, `DASHBOARD_PASSWORD_HASH`, `DASHBOARD_SESSION_SECRET` | bootstrap only | Generate with `scripts/setup-dashboard-auth.ps1`. |
+| Auth | `DASHBOARD_REGISTRATION_ENABLED` | `true` | Allows `POST /auth/register` and `/register.html` for SQL-backed dashboard accounts. |
+| Auth | `DASHBOARD_SESSION_HOURS` | `8` | Signed session lifetime, clamped to 1..24 hours. |
 | Auth | `DASHBOARD_COOKIE_SECURE` | `false` | Set `true` behind HTTPS. |
 | CV | `CAMPUSX_CV_DIR`, `CAMPUSX_POWERSHELL_EXECUTION_POLICY` | local folder, `RemoteSigned` | Windows-only camera controls. |
 | CV | `CV_SCRIPT_TIMEOUT_MS`, `CV_OPERATION_WAIT_MS` | 120000, 150000 | Script timeout and how long a `stop` waits for an in-flight `start`. |
@@ -249,10 +253,9 @@ SQL Server is authoritative. The canonical schema lives in `sql/CampusX_CreateDa
 | `FIRMWARE_INTEGRATION.md` | Copy-paste checklist for the firmware author. |
 | `FIRMWARE_API_REFERENCE.md` | One-page firmware handbook: HTTP endpoints + MQTT contract. |
 | `PROJECT_EXPLAINED_AR.md` | Arabic file-by-file walkthrough of the whole project. |
-| `README_AR.md` | Arabic dashboard/auth setup notes. |
 | `/docs` | Live in-server documentation page. |
 | `/docs/contract.json` | Machine-readable runtime contract. |
 
 ## Change management
 
-A full pre-hardening backup exists at `_backup_before_v2_hardening_20261118_153709` (176 files) and is ignored by Git. The hardening, firmware docs and project walkthrough were committed and pushed to `origin/main`.
+Obsolete patch scripts, duplicated sources, stale Arabic setup notes and `.bak` snapshots were removed from the working tree. The hardening, signup integration, firmware docs and project walkthrough are committed and pushed to `origin/main`. SQL Server remains the single source of truth.

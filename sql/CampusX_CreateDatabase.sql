@@ -169,6 +169,7 @@ CREATE TABLE dbo.Commands (
     CommandId BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Commands PRIMARY KEY,
     DeviceId INT NOT NULL,
     UserId INT NULL,
+    RequestedBy NVARCHAR(100) NULL,
     CommandType NVARCHAR(100) NOT NULL,
     PayloadJson NVARCHAR(MAX) NULL,
     Status NVARCHAR(30) NOT NULL CONSTRAINT DF_Commands_Status DEFAULT (N'pending'),

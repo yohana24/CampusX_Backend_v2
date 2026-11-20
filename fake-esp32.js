@@ -6,7 +6,8 @@ const mqtt = require('mqtt');
 const url = process.env.MQTT_URL || 'mqtt://localhost:1883';
 const topic = process.env.MQTT_TELEMETRY_TOPIC || 'smart-campus/telemetry';
 const deviceCode = process.env.DEVICE_ID || 'esp32-lab-01';
-const intervalMs = Math.max(1000, Number(process.env.SIMULATOR_INTERVAL_MS || 5000));
+const parsedInterval = Number(process.env.SIMULATOR_INTERVAL_MS || 5000);
+const intervalMs = Number.isFinite(parsedInterval) ? Math.max(1000, parsedInterval) : 5000;
 const scenarios = [
   { name: 'normal', temperature: 25.5, humidity: 55.2 },
   { name: 'warning', temperature: 32.5, humidity: 56.0 },

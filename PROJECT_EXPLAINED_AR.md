@@ -2,7 +2,7 @@
 
 > هذا الملف كُتب عشان تفهم المشروع كامل بدون ما تضيع بين الملفات.  
 > اقرأ القسم 1First (الصورة الكاملة)، وبعدين القسم 2 (خريطة الحركة)، وبعدين شرح الملفات حسب المجلد.  
-> الملفات اللي اسمها `.bak` أو موجودة في `backups/` أو `patch-source/` أو `integration/` هي **تاريخ تغييرات** وليست جزءًا من التشغيل الحالي — هشرحها في الآخر عشان تعرف إنها مش لازمة.
+> اتشالت نسخ `.bak` والسكربتات القديمة والنسخ الاحتياطية المحلية لأنها كانت تاريخ تغييرات وليست جزءًا من التشغيل الحالي.
 
 ---
 
@@ -102,15 +102,8 @@ POST /api/v1/commands  (session + X-API-Key)
 | `.env.example` | القالب immortal: كل المتغيرات مع قيم توضيحية (placeholders). هذا المرجع الذي تقرأه. |
 | `.env.dashboard-auth.example` | قالب مصغّر لقسم الداشبورد فقط: `DASHBOARD_USERNAME`, `DASHBOARD_PASSWORD_HASH`, `DASHBOARD_SESSION_SECRET`, إلخ. |
 | `.env.smtp.example` | قالب مصغّر للـ SMTP الاختياري. قيم وهمية فقط. |
-| `.gitignore` | يمنع رفع `node_modules`, `.venv`, `__pycache__`, `*.log`, `.env`, `.env.*` عدا examples، `backups/`, `_backup_*/`, `*.bak*`. هذا هو اللي خلى الـ backup folder ما يترفعش. |
+| `.gitignore` | يمنع رفع `node_modules`, `.venv`, `__pycache__`, `*.log`, `.env`, `.env.*` عدا examples، و`*.bak*`. |
 | `README.md` | الدليل الإنجليزي الرئيسي: معمارية، quick start، متغيرات البيئة، endpoints، الأمان، جداول SQL. |
-| `README_AR.md` | دليل عربي لتركيب/login patch وتفعيل الداشبورد الحي. |
-| `DASHBOARD_SETUP_AR.md` | دليل عربي قريب جدًا من السابق لإعداد حساب الداشبورد. |
-| `INSTALL_AR.txt` | خطوات تركيب يدوية قديمة لـ auth patch (تاريخي). |
-| `QUICK_INSTALL.txt` | ملاحظات تركيب قديمة لـ CV controls (تاريخي). |
-| `APP_JS_INSERTIONS.txt` | ملاحظة عربية فيها سطرين كانوا يُضافوا لـ `src/app.js` لتركيب CV API. النتيجة موجودة دلوقتي في `src/app.js`. |
-| `apply-dashboard-settings-fix.ps1` | سكربت تصحيح لمرة واحدة عشان يخلي `settings.html` يتولّى من `settings-account.js` بدل `dashboard-app.js`. النتيجة موجودة. |
-| `settings-account.js` | نسخة مصدر (root) لسكربت صفحة الإعدادات. النسخة المُخدّمة فعليًا هي `public/settings-account.js`. |
 | `API_CONTRACT.md` | العقد الرسمي لـ HTTP API: auth، response shape، كل الـ endpoints، SSE، idempotency. |
 | `MQTT_CONTRACT.md` | عقد MQTT: topics، QoS، payloads، دورة الأمر، idempotency. |
 | `FIRMWARE_INTEGRATION.md` | دليل مطوّل لمهندس الـ firmware: قواعد، payloads، Arduino sketch، اختبارات. |
@@ -136,10 +129,9 @@ POST /api/v1/commands  (session + X-API-Key)
 
 | الملف | الشرح |
 | --- | --- |
-| `src/middleware/security.js` | security headers + CORS حسب `CORS_ORIGINS` + `X-API-Key` للعمليات الكتابية + استثناء لـ `/stream?apiKey=`. |
+| `src/middleware/security.js` | security headers + CORS حسب `CORS_ORIGINS` و`PUBLIC_ORIGIN` + `X-API-Key` للعمليات الكتابية + استثناء لـ `/stream?apiKey=`. |
 | `src/middleware/errors.js` | `HttpError`, `asyncHandler` لتغليف الـ async routes، و `errorHandler` اللي يرجّع `{status:'error', error:{code,message}}`. |
-| `src/middleware/dashboardAuth.js` | **الحالي**: تسجيل دخول من `dbo.DashboardAccounts`، كوكး `campusx_session` موقّع HttpOnly SameSite=Strict، scrypt للباسورد، `SessionVersion` لإبطال الجلسات القديمة، تحديد محاولات الدخول، وإدارة بيانات الحساب. |
-| `src/middleware/dashboardAuth.base.js` | **قديم/غير مستخدم**: نفس الفكرة بس من `.env` فقط قبل ما نروح SQL. احتفظنا بيه كمرجع. |
+| `src/middleware/dashboardAuth.js` | **الحالي**: تسجيل دخول وتسجيل حسابات من `dbo.DashboardAccounts`، كوكي `campusx_session` موقّع HttpOnly SameSite=Strict، scrypt للباسورد، `SessionVersion` لإبطال الجلسات القديمة، تحديد محاولات الدخول والتسجيل، وإدارة بيانات الحساب. |
 
 ### 4.3 الـ Routes
 
@@ -234,31 +226,9 @@ POST /api/v1/commands  (session + X-API-Key)
 | `public/control-panel-automation.css` | لوحة الأتمتة (toggle، selects، زر حفظ). |
 | `public/control-panel-cv-control.css` | كرت إدارة عملية الـ CV (RUNNING/STOPPED إلخ). |
 
-### 5.4 ملفات قديمة في `public/` (ما بتتحمّلش)
+### 5.4 النسخ القديمة
 
-| الملف | الشرح |
-| --- | --- |
-| `public/script.js` | نموذج أولي فيه بيانات وهمية وتاب/fan/login قديم. استُبدل بـ `dashboard-app.js`. |
-| `public/legacy-settings-control.js` | كونترول قديم مدمج للإعدادات/التحكم. استُبدل. |
-| `public/control-settings.js` | نسخة قديمة ثانية بنفس الفكرة بـ IDs قديمة زي `cv-start`. |
-| `public/control-settings.css` | نظام تصميم قديم `.cx-*` غير مستخدم. |
-| `public/labs-navbar.css` | محاولة قديمة لشريط تنقل خاص بـ Labs، استُبدلت بـ `dashboard-ui-refresh.css`. |
-
-### 5.5 نسخ احتياطي داخل `public/` (كلها `.bak` — لا تستخدمها)
-
-هذه لقطات من مراحل التطوير، كلها محفوظة عشان نعرف إيه اتغيّر:
-
-- `alerts.html.bak-labs-20261031-192847`, `alerts.html.bak-ui-refresh-20261031-170117`
-- `command-history.html.bak-labs-20261031-192847`, `command-history.html.bak-ui-refresh-20261031-170117`
-- `devices.html.bak-labs-20261031-192847`, `devices.html.bak-ui-refresh-20261031-170117`
-- `index.html.bak-labs-20261031-192847`, `index.html.bak-ui-refresh-20261031-170117`
-- `settings.html.bak-labs-20261031-192847`, `settings.html.bak-ui-refresh-20261031-170117`
-- `labs.css.bak-create-lab-20261031-193521`, `labs.css.bak-create-lab-20261031-193619`, `labs.css.bak-labs-20261031-192847`
-- `labs.html.bak-add-nodes-20261031-230529`, `labs.html.bak-create-lab-20261031-193521`, `labs.html.bak-create-lab-20261031-193619`, `labs.html.bak-labs-20261031-192847`
-- `labs.js.bak-add-nodes-20261031-230529`, `labs.js.bak-create-lab-20261031-193521`, `labs.js.bak-create-lab-20261031-193619`, `labs.js.bak-labs-20261031-192847`
-- `control-panel.html.bak-clean-banner-20261119-132459` (قبل تنظيف البانر)، `.bak-compact-20261031-170750`, `.bak-cv-20261031-171734`, `.bak-cvrelay-20261031-191205`, `.bak-labs-20261031-192847`, `.bak-occupancy-20261031-175353`, `.bak-occupancy-20261031-175528`, `.bak-occupancy-20261031-175836`, `.bak-ui-refresh-20261031-170117`
-- `control-panel-live.js.bak-cv-20261031-171734`, `.bak-cv-speed-20261119-133019` (قبل تحسين السرعة)، `.bak-cvrelay-20261031-191205`, `.bak-occupancy-20261031-175353`, `.bak-occupancy-20261031-175528`, `.bak-occupancy-20261031-175836`
-- `dashboard-app.js.before-settings-live.bak`
+اتشالت ملفات `public/script.js` و`legacy-settings-control.js` و`control-settings.*` و`labs-navbar.css` وكل ملفات `.bak` لأنها كانت نماذج أو لقطات قديمة استُبدلت بالملفات النشطة المذكورة فوق.
 
 ### 5.6 التسجيل (Signup) — صفحات `register.*`
 
@@ -291,12 +261,8 @@ POST /api/v1/commands  (session + X-API-Key)
 | `computer-vision/.env.example` | قالب إعدادات الجسر: `DEVICE_ID`, `MQTT_HOST`, `MQTT_TOPIC`, `CV_JSON_URL`, `PUBLISH_INTERVAL_SECONDS` إلخ. |
 | `computer-vision/README_AR.md` | شرح عربي للتكامل: الكاميرا → `/json` → الجسر → MQTT → SQL، مع تحذيرات (ما تشغّلش كاميرتين مع بعض). |
 | `computer-vision/yolov8n.pt` | أوزان موديل YOLOv8 nano (ملف ثنائي مش كود). |
-| `computer-vision/headcount_original/headcount/cam_test.py` | اختبار كاميرا قديم من مشروع زميلك. |
-| `computer-vision/headcount_original/headcount/head_test.py` | عرض YOLO قديم على سطح المكتب. |
-| `computer-vision/headcount_original/headcount/web_count.py` | الخدمة الأصلية اللي اتنُسخ منها `web_count_campusx.py`. **ما تشغّلهاش مع النسخة الحالية.** |
-| نسخ `.bak-cv-speed-*` | لقطات قبل تحسين السرعة (WMI scans، thread count، DSHOW). |
 
-**مجلدات مولّدة مش في Git:** `computer-vision/.venv/` (بيئة بايثون)، `computer-vision/logs/`، `computer-vision/.run/` (فيه `camera.pid`, `bridge.pid`, و `last-start/last-stop logs`)، `__pycache__/`.
+**مجلدات مولّدة مش في Git:** `computer-vision/.venv/` (بيئة بايثون)، `computer-vision/logs/`، و`computer-vision/.run/` (فيه `camera.pid`, `bridge.pid`, و `last-start/last-stop logs`). اتشالت نسخ `.bak-cv-speed-*` والمصدر القديم في `headcount_original/` لأن النسخة الحالية هي `web_count_campusx.py`.
 
 ---
 
@@ -312,58 +278,13 @@ POST /api/v1/commands  (session + X-API-Key)
 
 ---
 
-## 8. مجلد `scripts/` — سكربتات التركيب القديمة (تاريخية)
+## 8. مجلد `scripts/` — الأدوات والاختبارات
 
-كل ملفات `apply-*.ps1` دي كانت **برامج تركيب لمرة واحدة**: بتعدّل `src/app.js` أو `src/routes/api.js` أو `public/*.html` وتعمل `.bak` قبل التعديل. النتيجة دلوقتي موجودة في الكود الحالي، فـ **ما تشغّلهاش تاني**.
-
-| الملف | كان بيعمل إيه |
-| --- | --- |
-| `apply-campusx-unified-navbar.ps1` | توحيد شريط التنقل في 7 صفحات. |
-| `apply-command-audit-patch.ps1` | إضافة `requestedBy` وaudit للأوامر. |
-| `apply-command-history-pagination.ps1` | إضافة offset/pagination لـ `/commands`. |
-| `apply-command-history-route-and-ack-diagnostics.ps1` | تسجيل صفحة Command History وتحسين logging للـ ACK. |
-| `apply-control-panel-compact-layout.ps1` | ربط `control-panel-compact.css`. |
-| `apply-cv-control-relay-integration.ps1` | دمج CV Start/Stop + أتمتة الريليه في اللوحة. |
-| `apply-cv-occupancy-layout.ps1` | كرت الإشغال بالسعة. |
-| `apply-dashboard-ui-refresh.ps1` | ربط `dashboard-ui-refresh.css`. |
-| `apply-labs-create-form.ps1` | تثبيت Create Lab form. |
-| `apply-labs-navbar.ps1` | شريط تنقل قديم خاص بـ Labs (استُبدل). |
-| `apply-labs-node-management.ps1` | إضافة إدارة الـ Nodes لصفحة Labs. |
-| `apply-labs-page.ps1` | تثبيت صفحة Labs أول مرة. |
-| `apply-occupancy-automation.ps1` | تثبيت أتمتة الإشغال. |
-| `settings-account.js` (في الجذر) | نسخة مصدر لسكربت الإعدادات. |
+اتشالت سكربتات `apply-*.ps1` لأنها كانت برامج تركيب لمرة واحدة ونتيجتها مدمجة في الكود الحالي. المتبقّي أدوات فعّالة زي `setup-dashboard-auth.ps1`, `register-smoke.js`, `smoke.js`, و`syntax-check.js`.
 
 ---
 
-## 9. مجلدات تاريخية أخرى
-
-| المجلد | الشرح |
-| --- | --- |
-| `integration/app.js.patch.txt` | ملاحظة يدوية لتركيب routes الحساب في `src/app.js`. |
-| `integration/server.js.patch.txt` | ملاحظة يدوية لتهيئة الـ auth عند بدء `src/server.js`. |
-| `patch-source/public/*` | النسخ الأصلية اللي كانت سكربتات `apply-labs-*` بتنسخها لـ `public/`: `labs.html`, `labs.css`, `labs.js`, `labs-navbar.css`, `labs-nodes.css`, `labs-nodes.js`. |
-| `backups/labs-navbar/labs.html.20261031-194311.bak` | نسخة قبل تركيب شريط Labs. |
-| `backups/unified-navbar/*.20261031-223544.bak` | نسخ قبل توحيد التنقل لـ: alerts, command-history, control-panel, devices, index, labs, settings. |
-| `_backup_before_v2_hardening_20261118_153709/` | نسخة احتياطية قديمة للمشروع قبل التحصين، **فيها `.env`**. مستبعدة من Git عبر `.gitignore` (`_backup_*/`). |
-
----
-
-## 10. ملفات `.bak` داخل `src/` و `computer-vision/`
-
-دي كلها لقطات قديمة مش مستخدمة أبدًا لأن Node بيستورد المسارات الحقيقية بس:
-
-- `src/app.js.bak-cvrelay-20261031-191205`, `src/app.js.bak-labs-20261031-192847`, `src/app.js.command-history-route.bak`
-- `src/routes/api.js.bak-occupancy-20261031-175353`, `.bak-occupancy-20261031-175528`, `.bak-occupancy-20261031-175836`, `src/routes/api.js.command-audit.bak`, `src/routes/api.js.command-history.bak`
-- `src/services/mqttService.js.bak-occupancy-20261031-175353`, `.bak-occupancy-20261031-175528`, `.bak-occupancy-20261031-175836`, `src/services/mqttService.js.command-ack-diagnostics.bak`
-- `src/services/occupancyAutomationService.js.bak-cvrelay-20261031-191205`
-- `src/services/computerVisionManager.js.bak-cv-speed-20261119-133019`
-- `computer-vision/web_count_campusx.py.bak-cv-speed-20261119-133955`
-- `computer-vision/start-computer-vision.ps1.bak-cv-speed-20261119-133019`
-- `computer-vision/stop-computer-vision.ps1.bak-cv-speed-20261119-133019`
-
----
-
-## 11. الثوابت اللي ما تتغيرمش بالغلط
+## 9. الثوابت اللي ما تتغيرمش بالغلط
 
 1. SQL هو المصدر الوحيد للحقيقة — الـ eventHub/SSE مجرد عرض.
 2. topics الافتراضية: `smart-campus/telemetry`, `smart-campus/devices/+/telemetry`, `smart-campus/devices/+/command-response`, و command على `smart-campus/devices/{deviceCode}/commands`.
@@ -376,7 +297,7 @@ POST /api/v1/commands  (session + X-API-Key)
 
 ---
 
-## 12. أوامر تستخدمها كل يوم
+## 10. أوامر تستخدمها كل يوم
 
 ```powershell
 cd D:\important\me\server\CampusX_Backend_v2
@@ -396,7 +317,7 @@ powershell -File computer-vision\stop-computer-vision.ps1
 
 ---
 
-## 13. خلاصة ليا يا يسطا
+## 11. خلاصة ليا يا يسطا
 
 لو حابب تبدأ تقرأ من غير ما تضيع:
 
@@ -409,4 +330,4 @@ powershell -File computer-vision\stop-computer-vision.ps1
 7. `computer-vision/web_count_campusx.py` و `mqtt_bridge.py` → عدّاد الأشخاص.
 8. `FIRMWARE_API_REFERENCE.md` → اللي تبعته لصاحبك.
 
-والباقي (`.bak`, `patch-source`, `integration`, `backups`, `apply-*.ps1`) مجرد تاريخ — اقرأه بس لو محتاج تعرف ليه حصل تغيير معين.
+والباقي ملفات نشطة أو أدوات اختبار؛ اقرأ `.env.example` و`API_CONTRACT.md` و`MQTT_CONTRACT.md` لو محتاج تفاصيل التشغيل.
