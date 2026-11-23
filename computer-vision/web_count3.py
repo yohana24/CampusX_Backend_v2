@@ -4,8 +4,10 @@ CampusX people counter (front webcam by default, overhead heads optional)
   python web_count3.py --always     -> ignore the 9-15 working hours (for testing)
   python web_count3.py --calibrate  -> run ONCE with an EMPTY room to learn fixed "ghost" spots
 
-CV_DETECTOR=person (default) uses yolov8n.pt class 0 on any connected webcam.
-CV_DETECTOR=head uses head240.pt for top-down / ESP32-CAM 240px footage.
+CV_DETECTOR=head (default) uses head240.pt for top-down / ESP32-CAM footage.
+On a front-facing webcam where head240 sees nothing, CV_FACE_FALLBACK=true adds
+frontal-face detections so the same service still counts and draws boxes.
+CV_DETECTOR=person uses yolov8n.pt class 0 instead.
 """
 import os, sys, time, json, csv, threading
 from collections import deque
@@ -22,7 +24,7 @@ from ultralytics import YOLO
 # CampusX settings come from the environment (the server loads .env into its
 # child processes). CV_DETECTOR chooses a preset for the camera angle; any
 # explicit CV_* variable below overrides that preset.
-DETECTOR = os.getenv("CV_DETECTOR", "person").strip().lower()
+DETECTOR = os.getenv("CV_DETECTOR", "head").strip().lower()
 if DETECTOR not in ("person", "head"):
     raise SystemExit(f"CV_DETECTOR must be 'person' or 'head', got {DETECTOR!r}")
 
@@ -34,7 +36,7 @@ PRESETS = {
                    label="people", class_filter=0),
     # Overhead / ESP32-CAM 240px: model trained to see only the top of heads.
     "head": dict(model="head240.pt", simulate240=True, conf_keep=0.20,
-                 conf_new=0.40, min_hits=6, grace=10, smooth=10,
+                 conf_new=0.40, min_hits=3, grace=10, smooth=5,
                  min_area=0.0002, max_area=0.10, min_ratio=0.5, max_ratio=2.5,
                  label="heads", class_filter=0),
 }
@@ -88,10 +90,17 @@ LOG_EVERY = env_int("CV_LOG_EVERY", 60)                    # ثانية
 ALWAYS = "--always" in sys.argv or env_bool("CV_ALWAYS", True)
 # الوب كام الأمامي بيتقرأ بحجمه الكامل؛ تصغير 240 مطلوب بس لكاميرا الـ ESP32 العلوية.
 SIMULATE_240 = isinstance(SOURCE, int) and env_bool("CV_SIMULATE_240", P["simulate240"])
+# head240.pt مدرّب على رؤوس من فوق. لو الكاميرا أمامية ومفيش كشف، نكمّل بوجوه أمامية.
+FACE_FALLBACK = env_bool("CV_FACE_FALLBACK", True)
 
 model = YOLO(MODEL_PATH)
+try:
+    face_cascade = cv2.CascadeClassifier(
+        cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+except Exception:
+    face_cascade = None
 state = {"count": 0, "cand": 0, "status": "starting", "infer": 0.0, "fps": 0.0,
-         "ts": "", "jpg": None, "log": []}
+         "ts": "", "jpg": None, "raw_jpg": None, "fallback": False, "log": []}
 
 
 # ---------------------------- الكاميرا ----------------------------
@@ -239,9 +248,12 @@ def loop():
             time.sleep(0.02)
             continue
         last_id, last_new = fid, time.time()
+        full = frame
+        state["raw_jpg"] = cv2.imencode(".jpg", full)[1].tobytes()
         if SIMULATE_240:
             frame = shrink_to_240(frame)
         h, w = frame.shape[:2]
+        scale = w / full.shape[1] if full.shape[1] else 1.0
 
         t = time.time()
         res = model.track(frame, persist=True, tracker="bytetrack.yaml",
@@ -261,6 +273,24 @@ def loop():
                 tr["hits"] += 1
                 tr["maxconf"] = max(tr["maxconf"], c)
                 tr["last"], tr["box"] = fi, b
+
+        # head240.pt بيشوف الرؤوس من فوق بس. على webcam أمامية بنكمّل بكاشف الوجوه،
+        # ونحط مربعاته في نفس الـ tracker عشان العدد والرسم يتطابقوا.
+        used_fallback = False
+        if FACE_FALLBACK and not seen and face_cascade is not None:
+            gray = cv2.cvtColor(full, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray, 1.1, 3, minSize=(60, 60))
+            for i, (x, y, fw, fh) in enumerate(faces):
+                box = [x * scale, y * scale, (x + fw) * scale, (y + fh) * scale]
+                if not valid_box(*box, w, h):
+                    continue
+                used_fallback = True
+                tid, conf = 10000 + i, 0.99
+                seen[tid] = (box, conf)
+                tr = tracks.setdefault(tid, {"hits": 0, "maxconf": 0.0, "last": fi, "box": box})
+                tr["hits"] += 1
+                tr["maxconf"] = max(tr["maxconf"], conf)
+                tr["last"], tr["box"] = fi, box
 
         for tid in [k for k, v in tracks.items() if fi - v["last"] > GRACE * 4]:
             del tracks[tid]
@@ -299,12 +329,13 @@ def loop():
         for x1, y1, x2, y2 in ZONES:
             cv2.rectangle(vis, (int(x1 * w * k), int(y1 * h * k)),
                           (int(x2 * w * k), int(y2 * h * k)), (0, 0, 255), 1)
-        cv2.putText(vis, f"{LABEL} {smooth}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        headline = f"{LABEL} {smooth}" + (" [face-fallback]" if used_fallback else "")
+        cv2.putText(vis, headline, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
         state["jpg"] = cv2.imencode(".jpg", vis)[1].tobytes()
         state.update(count=smooth, cand=len([t for t in seen if t not in kept_ids]),
-                     status="يعمل", infer=round(ms, 1), fps=round(fps, 1),
-                     ts=datetime.now(timezone.utc).isoformat())
+                     status="يعمل", fallback=used_fallback, infer=round(ms, 1),
+                     fps=round(fps, 1), ts=datetime.now(timezone.utc).isoformat())
         state["log"] = (state["log"] + [f"{now:%H:%M:%S} count={smooth} raw={len(kept)} "
                                         f"infer={ms:.0f}ms fps={fps:.1f}"])[-5:]
 
@@ -323,12 +354,15 @@ def loop():
 # ---------------------------- الصفحة ----------------------------
 app = Flask(__name__)
 
-PAGE = """<body style="background:#111;color:#aaa;font-family:monospace;padding:20px">
-<h1 id="n" style="color:#5f5;font-size:60px;margin:0">0 __LABEL__</h1>
+PAGE = """<body style="background:#111;color:#ddd;font-family:monospace;padding:20px">
+<h1 id="n" style="color:#5f5;font-size:52px;margin:0">0 __LABEL__</h1>
 <p id="s">...</p>
-<img src="/video" width="480"><br>
+<div style="display:flex;gap:18px;flex-wrap:wrap">
+  <div><b>Camera view (raw)</b><br><img src="/rawstream" width="480" style="background:#000"></div>
+  <div><b>Detection view (__MODEL__)</b><br><img src="/video" width="480" style="background:#000"></div>
+</div>
 <p>log:<br><span id="log"></span></p>
-<a href="/json">json</a> <a href="/health">health</a>
+<a href="/json">json</a> <a href="/frame">frame</a> <a href="/raw">raw</a> <a href="/health">health</a>
 <script>
 async function tick(){
   try{
@@ -336,12 +370,13 @@ async function tick(){
     document.getElementById('n').textContent = d.count + ' ' + d.label + (d.count==1?'':'s');
     document.getElementById('s').textContent = 'status=' + d.status + ' | fps=' + d.fps +
       ' | candidates=' + d.candidates + ' | infer=' + d.infer_ms + 'ms' +
-      ' | detector=' + d.detector + ' (' + d.model + ')';
+      ' | detector=' + d.detector + ' (' + d.model + ')' +
+      (d.face_fallback ? ' | source=frontal-face-fallback' : ' | source=head240.pt');
     document.getElementById('log').innerHTML = d.log.join('<br>');
   }catch(e){}
 }
 setInterval(tick, 500); tick();
-</script></body>""".replace("__LABEL__", LABEL)
+</script></body>""".replace("__LABEL__", LABEL).replace("__MODEL__", MODEL_PATH)
 
 
 @app.route("/")
@@ -361,6 +396,23 @@ def video():
     return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=f")
 
 
+def gen_raw():
+    while True:
+        if state["raw_jpg"]:
+            yield (b"--f\r\nContent-Type: image/jpeg\r\n\r\n" + state["raw_jpg"] + b"\r\n")
+        time.sleep(0.1)
+
+
+@app.route("/rawstream")
+def rawstream():
+    return Response(gen_raw(), mimetype="multipart/x-mixed-replace; boundary=f")
+
+
+@app.route("/raw")
+def raw():
+    return Response(state["raw_jpg"] or b"", mimetype="image/jpeg")
+
+
 @app.route("/frame")
 def frame():
     return Response(state["jpg"] or b"", mimetype="image/jpeg")
@@ -373,7 +425,8 @@ def js():
     return jsonify(count=state["count"], raw=state["count"], candidates=state["cand"],
                    status=state["status"], infer_ms=state["infer"], fps=state["fps"],
                    ts=state["ts"], log=state["log"], detector=DETECTOR,
-                   model=MODEL_PATH, label=LABEL)
+                   model=MODEL_PATH, label=LABEL,
+                   face_fallback=state["fallback"])
 
 
 @app.route("/health")
@@ -386,7 +439,7 @@ if __name__ == "__main__":
         calibrate()
     else:
         print(f"Detector={DETECTOR} model={MODEL_PATH} source={SOURCE} "
-              f"simulate240={SIMULATE_240} | zones={len(ZONES)} | "
-              f"always={ALWAYS} | target fps={TARGET_FPS}")
+              f"simulate240={SIMULATE_240} face_fallback={FACE_FALLBACK} | "
+              f"zones={len(ZONES)} | always={ALWAYS} | target fps={TARGET_FPS}")
         threading.Thread(target=loop, daemon=True).start()
         app.run(host=HOST, port=PORT, threaded=True, use_reloader=False)

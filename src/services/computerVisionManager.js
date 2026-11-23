@@ -160,6 +160,7 @@ async function getStatus() {
       detectionStatus: snapshot?.status || null,
       detector: snapshot?.detector || null,
       model: snapshot?.model || null,
+      faceFallback: typeof snapshot?.face_fallback === 'boolean' ? snapshot.face_fallback : null,
       lastFrameAt: snapshot?.ts || null,
     },
     bridge: {

@@ -79,7 +79,7 @@ POST /api/v1/commands  (session + X-API-Key)
 ### 2.4 Computer Vision → إشغال → أمر تلقائي
 
 ```text
-كاميرا -> web_count3.py (yolov8n.pt / head240.pt حسب CV_DETECTOR) -> HTTP /json
+كاميرا -> web_count3.py (head240.pt افتراضي + face fallback) -> HTTP /json
    -> mqtt_bridge.py -> MQTT people_count
    -> backend -> dbo.Telemetry
    -> occupancyAutomationService.evaluateOccupancyAutomation()
@@ -253,19 +253,19 @@ POST /api/v1/commands  (session + X-API-Key)
 
 | الملف | الشرح |
 | --- | --- |
-| `computer-vision/web_count3.py` | **الخدمة النشطة**: Flask على `CV_WEB_HOST:CV_WEB_PORT` (الافتراضي `127.0.0.1:5000`)، يقرأ أي webcam متصل. الوضع الافتراضي `CV_DETECTOR=person` بيستخدم `yolov8n.pt` (class 0) على الصورة الكاملة؛ والوضع `head` بيستخدم `head240.pt` للكاميرات العلوية. مع ByteTrack وتأكيد/تنعيم للعدد، ويعرض `/`, `/frame`, `/video`, `/json`, `/health`. الإعدادات كلها من environment. |
+| `computer-vision/web_count3.py` | **الخدمة النشطة**: Flask على `CV_WEB_HOST:CV_WEB_PORT` (الافتراضي `127.0.0.1:5000`)، يقرأ أي webcam متصل. الافتراضي `CV_DETECTOR=head` مع `head240.pt`، ومع `CV_FACE_FALLBACK=true` بيكمّل بكاشف وجوه أمامي لو الموديل ما لقى رأس. مع ByteTrack وتأكيد/تنعيم للعدد. المعاينة على `http://127.0.0.1:5000/` فيها صورة الكاميرا الخام وصورة الكشف جنب بعض؛ endpoints: `/`, `/raw`, `/rawstream`, `/frame`, `/video`, `/json`, `/health`. الإعدادات كلها من environment. |
 | `computer-vision/mqtt_bridge.py` | **الجسر النشط**: ما بيفتح كاميرا ولا YOLO. بيقرأ `/json` كل فترة وينشر `people_count` على MQTT بصيغة telemetry مع `message_id` فريد. |
 | `computer-vision/start-computer-vision.ps1` | سكربت الـ Start: يشوف الكاميرا والجسر شغالين ولا لا (PID files + WMI محقّن)، يبدأهم كـ hidden processes، يكتب logs، وينتظر `/health`. |
 | `computer-vision/stop-computer-vision.ps1` | سكربت الـ Stop: يوقف **ملفات Python فقط** (`mqtt_bridge.py` و `web_count3.py`) بالـ PID والـ command line. ما بيوقفش السيرفر ولا Mosquitto. |
 | `computer-vision/run-mqtt-bridge.ps1` | مساعد يدوي لتشغيل الجسر في المقدمة (foreground) بـ venv Python. |
 | `computer-vision/requirements.txt` | Flask + opencv-python + ultralytics + paho-mqtt + python-dotenv + requests + lap (مطلوب لـ ByteTrack). |
-| `computer-vision/.env.example` | قالب إعدادات الكاميرا والجسر: `CV_DETECTOR`, `CV_MODEL_PATH`, `CV_SOURCE`, `CV_CLASS_FILTER`, حدود المربع/الثقة، `CV_WEB_HOST`, `CV_WEB_PORT`, `CV_ALWAYS`, `DEVICE_ID`, `MQTT_HOST`, `MQTT_TOPIC`, `CV_JSON_URL`, `PUBLISH_INTERVAL_SECONDS` إلخ. |
+| `computer-vision/.env.example` | قالب إعدادات الكاميرا والجسر: `CV_DETECTOR` (افتراضي `head`), `CV_MODEL_PATH=head240.pt`, `CV_SOURCE`, `CV_FACE_FALLBACK`, `CV_CLASS_FILTER`, حدود المربع/الثقة، `CV_WEB_HOST`, `CV_WEB_PORT`, `CV_ALWAYS`, `DEVICE_ID`, `MQTT_HOST`, `MQTT_TOPIC`, `CV_JSON_URL`, `PUBLISH_INTERVAL_SECONDS` إلخ. |
 | `computer-vision/README_AR.md` | شرح عربي للتكامل: الكاميرا → `/json` → الجسر → MQTT → SQL، مع تحذيرات (ما تشغّلش كاميرتين مع بعض). |
-| `computer-vision/yolov8n.pt` | **الموديل الافتراضي**: أوزان YOLOv8n (فئة `person`) للكاميرات الأمامية (ملف ثنائي مش كود). |
-| `computer-vision/head240.pt` | أوزان موديل YOLOv8n مدرّب على الرؤوس بدقّة 240px — للكاميرات العلوية بس (ملف ثنائي مش كود). |
+| `computer-vision/head240.pt` | **الموديل الافتراضي الجديد**: أوزان YOLOv8n مدرّب على الرؤوس بدقّة 240px (ملف ثنائي مش كود). |
+| `computer-vision/yolov8n.pt` | موديل بديل اختياري (`CV_DETECTOR=person`) لكشف الأشخاص كاملين (ملف ثنائي مش كود). |
 | `computer-vision/web_count1.py`, `test_image.py`, `cam_test.py`, `head_test.py`, `voc_to_yolo.py`, `train_colab.ipynb`, `README.md` | أدوات الاختبار والتدريب جايّة من الـ zip؛ مش بتتشغّل تلقائيًا من الداشبورد. |
 
-**مجلدات مولّدة مش في Git:** `computer-vision/.venv/` (بيئة بايثون)، `computer-vision/logs/`، و`computer-vision/.run/` (فيه `camera.pid`, `bridge.pid`, و `last-start/last-stop logs`). اتشال المصدر القديم `web_count_campusx.py`؛ النسخة الحالية هي `web_count3.py` مع موديلين (`yolov8n.pt` للويب كام، `head240.pt` للكاميرا العلوية).
+**مجلدات مولّدة مش في Git:** `computer-vision/.venv/` (بيئة بايثون)، `computer-vision/logs/`، و`computer-vision/.run/` (فيه `camera.pid`, `bridge.pid`, و `last-start/last-stop logs`). اتشال المصدر القديم `web_count_campusx.py`؛ النسخة الحالية هي `web_count3.py` مع `head240.pt` كافتراضي و`yolov8n.pt` كبديل اختياري.
 
 ---
 
@@ -330,7 +330,7 @@ powershell -File computer-vision\stop-computer-vision.ps1
 4. `src/routes/api.js` → كل الـ endpoints.
 5. `src/services/mqttService.js` و `telemetryService.js` و `commandResponseService.js` → قلب اللوجيك.
 6. `public/control-panel-live.js` → كل اللي المستخدم شايفه.
-7. `computer-vision/web_count3.py` و `mqtt_bridge.py` → عدّاد الأشخاص من الكاميرا المتصلة.
+7. `computer-vision/web_count3.py` و `mqtt_bridge.py` → عدّاد الرؤوس من أي كاميرا متصلة، مع معاينة على `http://127.0.0.1:5000/`.
 8. `FIRMWARE_API_REFERENCE.md` → اللي تبعته لصاحبك.
 
 والباقي ملفات نشطة أو أدوات اختبار؛ اقرأ `.env.example` و`API_CONTRACT.md` و`MQTT_CONTRACT.md` لو محتاج تفاصيل التشغيل.
