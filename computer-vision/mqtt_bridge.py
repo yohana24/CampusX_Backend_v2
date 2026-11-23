@@ -1,8 +1,8 @@
 """Bridge the original headcount Flask JSON output to CampusX MQTT.
 
-The detection algorithm stays in web_count_campusx.py (copied from the
-teammate's original web_count.py). This process only reads /json and publishes
-people_count telemetry; it does not open the camera or run YOLO.
+The detection algorithm stays in web_count3.py (head240.pt). This process only
+reads /json and publishes people_count telemetry; it does not open the camera
+or run YOLO.
 """
 from __future__ import annotations
 
@@ -147,7 +147,10 @@ def main() -> int:
         while running:
             try:
                 snapshot = get_cv_snapshot()
-                count_value = snapshot.get("raw")
+                # New head-counting service exposes `count`; older CV versions used `raw`.
+                count_value = snapshot.get("count")
+                if count_value is None:
+                    count_value = snapshot.get("raw")
                 source_timestamp = snapshot.get("ts")
 
                 # The original CV app starts its camera worker in a background

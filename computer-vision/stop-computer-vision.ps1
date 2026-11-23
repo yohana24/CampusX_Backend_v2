@@ -40,5 +40,5 @@ function Stop-ManagedProcess([string]$PidFile, [string]$ScriptName, [string]$Lab
 }
 
 Stop-ManagedProcess -PidFile (Join-Path $state 'bridge.pid') -ScriptName 'mqtt_bridge.py' -Label 'MQTT Bridge'
-Stop-ManagedProcess -PidFile (Join-Path $state 'camera.pid') -ScriptName 'web_count_campusx.py' -Label 'Computer Vision'
+Stop-ManagedProcess -PidFile (Join-Path $state 'camera.pid') -ScriptName 'web_count3.py' -Label 'Computer Vision'
 Write-Host 'CV stop command completed. Backend (npm start) and Mosquitto were not stopped.'

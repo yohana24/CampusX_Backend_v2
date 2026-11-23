@@ -191,7 +191,7 @@ const contract = {
     { method: 'GET', path: `${API}/states/latest`, auth: 'session', note: 'Latest confirmed state per device + StateCode' },
     { method: 'POST', path: `${API}/states`, auth: 'session', note: 'Manual state record' },
     { method: 'GET,PUT', path: `${API}/occupancy-automation`, auth: 'session', note: 'Per-room people-count automation settings' },
-    { method: 'GET,POST', path: `${API}/computer-vision/*`, auth: 'session', note: 'status / start / stop' },
+    { method: 'GET,POST', path: `${API}/computer-vision/*`, auth: 'session', note: 'status / start / stop; head240.pt camera with candidates/fps/detectionStatus' },
     { method: 'GET', path: `${API}/stream`, auth: 'session', note: 'Server-Sent Events (telemetry, alert, command, device.state)' },
     { method: 'GET', path: '/docs', auth: 'public', note: 'Human-readable documentation landing page' },
     { method: 'GET', path: '/docs/contract.json', auth: 'public', note: 'This machine-readable contract' },

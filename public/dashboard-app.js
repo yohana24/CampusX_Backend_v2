@@ -692,7 +692,12 @@
       setText($('#cx-cv-people-count'), `${Math.round(Number(cameraCount))} person(s)`);
     }
     const inference = data?.camera?.inferenceMs;
-    setText($('#cx-cv-inference'), inference == null ? '—' : `${fmt(inference, 0)} ms`);
+    const candidates = data?.camera?.candidates;
+    const inferenceText = inference == null ? '—' : `${fmt(inference, 0)} ms`;
+    setText($('#cx-cv-inference'), candidates == null ? inferenceText : `${inferenceText} · ${Math.round(candidates)} cand`);
+    const fps = data?.camera?.fps;
+    setText($('#cx-cv-fps'), fps == null ? '—' : `${fmt(fps, 1)} fps`);
+    setText($('#cx-cv-detection-status'), data?.camera?.detectionStatus || '—');
 
     const startButton = $('#cx-cv-start');
     const stopButton = $('#cx-cv-stop');

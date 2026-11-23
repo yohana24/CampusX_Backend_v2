@@ -135,7 +135,7 @@
       <span class="cx-cv-manager-icon"><i data-lucide="scan-eye"></i></span>
       <div>
         <h3 id="cx-cv-title">Computer Vision Control</h3>
-        <p>Original Headcount camera service · LAB-01 · people-counter-lab-01</p>
+        <p>Head-detection CV (head240.pt) · LAB-01 · people-counter-lab-01</p>
       </div>
     </div>
     <span class="cx-cv-state is-checking" id="cx-cv-state" role="status" aria-live="polite">
@@ -145,8 +145,10 @@
   <div class="cx-cv-manager-status-grid">
     <div class="cx-cv-status-item"><span>Camera service</span><strong id="cx-cv-camera-state">Checking…</strong></div>
     <div class="cx-cv-status-item"><span>MQTT Bridge</span><strong id="cx-cv-bridge-state">Checking…</strong></div>
-    <div class="cx-cv-status-item"><span>Current people detected</span><strong id="cx-cv-people-count">—</strong></div>
-    <div class="cx-cv-status-item"><span>YOLO inference</span><strong id="cx-cv-inference">—</strong></div>
+    <div class="cx-cv-status-item"><span>Heads confirmed now</span><strong id="cx-cv-people-count">—</strong></div>
+    <div class="cx-cv-status-item"><span>Candidates / inference</span><strong id="cx-cv-inference">—</strong></div>
+    <div class="cx-cv-status-item"><span>Detection status</span><strong id="cx-cv-detection-status">—</strong></div>
+    <div class="cx-cv-status-item"><span>Tracking FPS</span><strong id="cx-cv-fps">—</strong></div>
   </div>
   <div class="cx-cv-manager-actions">
     <button type="button" class="btn-primary-sm" id="cx-cv-start"><i data-lucide="play"></i> Start Computer Vision</button>

@@ -315,9 +315,11 @@ Automation triggers only from newly saved `people_count` readings. The condition
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| GET | `/computer-vision/status` | Camera/bridge process snapshot. |
-| POST | `/computer-vision/start` | Runs configured PowerShell start script. |
+| GET | `/computer-vision/status` | Camera/bridge process snapshot. `data.camera` includes `currentPeople`, `candidates`, `inferenceMs`, `fps`, `detectionStatus` and `lastFrameAt`. |
+| POST | `/computer-vision/start` | Runs configured PowerShell start script (`web_count3.py` + `mqtt_bridge.py`). |
 | POST | `/computer-vision/stop` | Runs configured PowerShell stop script. |
+
+The camera service uses `head240.pt` (single `head` class) with ByteTrack tracking and head-count smoothing. Its local `/json` exposes `count`, `raw`, `candidates`, `status`, `infer_ms`, `fps` and `ts`; the MQTT bridge still publishes `people_count` telemetry unchanged.
 
 Execution policy comes from `CAMPUSX_POWERSHELL_EXECUTION_POLICY` (default `RemoteSigned`), not from hardcoded `-ExecutionPolicy Bypass`.
 

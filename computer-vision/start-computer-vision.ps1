@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 # Existing matching processes are adopted to avoid duplicate camera/bridge workers.
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $python = Join-Path $root '.venv\Scripts\python.exe'
-$cameraScript = Join-Path $root 'web_count_campusx.py'
+$cameraScript = Join-Path $root 'web_count3.py'
 $bridgeScript = Join-Path $root 'mqtt_bridge.py'
 $logs = Join-Path $root 'logs'
 $state = Join-Path $root '.run'
@@ -117,7 +117,7 @@ function Start-ManagedProcess(
 $cameraReady = $false
 if (Test-Health) {
     $cameraReady = $true
-    $cameraExisting = Find-ExistingScriptProcess -ScriptName 'web_count_campusx.py'
+    $cameraExisting = Find-ExistingScriptProcess -ScriptName 'web_count3.py'
     if ($null -ne $cameraExisting) {
         Set-Content -Path (Join-Path $state 'camera.pid') -Value $cameraExisting.ProcessId -Encoding ascii
         Write-Host "Computer Vision is already responding; adopted PID $($cameraExisting.ProcessId)." -ForegroundColor Yellow

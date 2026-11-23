@@ -230,10 +230,12 @@
        <span class="cv-manager-state is-checking" id="control-cv-manager-state" role="status" aria-live="polite">CHECKING</span>
       </div>
       <div class="cv-manager-status-grid">
-       <div class="cv-manager-status-item"><span>Camera service</span><strong id="control-cv-camera-state">Checkingâ€¦</strong></div>
-       <div class="cv-manager-status-item"><span>MQTT Bridge</span><strong id="control-cv-bridge-state">Checkingâ€¦</strong></div>
-       <div class="cv-manager-status-item"><span>Live camera count</span><strong id="control-cv-live-count">â€”</strong></div>
-       <div class="cv-manager-status-item"><span>YOLO inference</span><strong id="control-cv-inference">â€”</strong></div>
+       <div class="cv-manager-status-item"><span>Camera service</span><strong id="control-cv-camera-state">Checking…</strong></div>
+       <div class="cv-manager-status-item"><span>MQTT Bridge</span><strong id="control-cv-bridge-state">Checking…</strong></div>
+       <div class="cv-manager-status-item"><span>Heads confirmed now</span><strong id="control-cv-live-count">—</strong></div>
+       <div class="cv-manager-status-item"><span>Candidates / inference</span><strong id="control-cv-inference">—</strong></div>
+       <div class="cv-manager-status-item"><span>Detection status</span><strong id="control-cv-detection-status">—</strong></div>
+       <div class="cv-manager-status-item"><span>Tracking FPS</span><strong id="control-cv-fps">—</strong></div>
       </div>
       <div class="cv-manager-actions">
        <button class="btn-primary-sm" id="control-cv-start" type="button"><i data-lucide="play"></i>Start Computer Vision</button>
@@ -241,7 +243,7 @@
        <a class="btn-secondary-sm is-disabled" id="control-cv-preview" href="http://127.0.0.1:5000/" target="_blank" rel="noopener" aria-disabled="true"><i data-lucide="video"></i>Open Preview</a>
        <span class="cv-manager-updated" id="control-cv-checked">Status refreshes every 10 seconds</span>
       </div>
-      <p class="cv-manager-note">Start runs web_count_campusx.py and mqtt_bridge.py on the CampusX host. Stop closes these two processes only; Node.js and Mosquitto stay running.</p>
+      <p class="cv-manager-note">Start runs web_count3.py (head240.pt) and mqtt_bridge.py on the CampusX host. Stop closes these two processes only; Node.js and Mosquitto stay running.</p>
      </div>
     </div>
 

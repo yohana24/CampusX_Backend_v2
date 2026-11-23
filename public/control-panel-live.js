@@ -509,7 +509,12 @@
     setText('control-cv-live-count', cameraCount === null || cameraCount === undefined || !Number.isFinite(Number(cameraCount))
       ? 'No live frame' : `${Math.round(Number(cameraCount))} people`);
     const inference = data?.camera?.inferenceMs;
-    setText('control-cv-inference', inference === null || inference === undefined ? '—' : `${Number(inference).toFixed(0)} ms`);
+    const candidates = data?.camera?.candidates;
+    const inferenceText = inference === null || inference === undefined ? '—' : `${Number(inference).toFixed(0)} ms`;
+    setText('control-cv-inference', candidates === null || candidates === undefined ? inferenceText : `${inferenceText} · ${Math.round(Number(candidates))} cand`);
+    const fps = data?.camera?.fps;
+    setText('control-cv-fps', fps === null || fps === undefined ? '—' : `${Number(fps).toFixed(1)} fps`);
+    setText('control-cv-detection-status', data?.camera?.detectionStatus || '—');
 
     const startButton = $('#control-cv-start');
     const stopButton = $('#control-cv-stop');

@@ -15,7 +15,7 @@ const CV_DIR = path.resolve(
 const START_SCRIPT = path.join(CV_DIR, 'start-computer-vision.ps1');
 const STOP_SCRIPT = path.join(CV_DIR, 'stop-computer-vision.ps1');
 const PYTHON_EXE = path.join(CV_DIR, '.venv', 'Scripts', 'python.exe');
-const CAMERA_SCRIPT = path.join(CV_DIR, 'web_count_campusx.py');
+const CAMERA_SCRIPT = path.join(CV_DIR, 'web_count3.py');
 const BRIDGE_SCRIPT = path.join(CV_DIR, 'mqtt_bridge.py');
 const STATE_DIR = path.join(CV_DIR, '.run');
 const CAMERA_PID_FILE = path.join(STATE_DIR, 'camera.pid');
@@ -71,7 +71,7 @@ async function scanCvPids() {
   }
   const command = [
     "$all = @(Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue)",
-    "$cam = @($all | Where-Object { $_.CommandLine -and $_.CommandLine.IndexOf('web_count_campusx.py', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 } | ForEach-Object { $_.ProcessId })",
+    "$cam = @($all | Where-Object { $_.CommandLine -and $_.CommandLine.IndexOf('web_count3.py', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 } | ForEach-Object { $_.ProcessId })",
     "$brg = @($all | Where-Object { $_.CommandLine -and $_.CommandLine.IndexOf('mqtt_bridge.py', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 } | ForEach-Object { $_.ProcessId })",
     "[Console]::Out.WriteLine('CAM=' + ($cam -join ','))",
     "[Console]::Out.WriteLine('BRG=' + ($brg -join ','))",
@@ -152,8 +152,12 @@ async function getStatus() {
       running: cameraRunning,
       managed: Boolean(cameraPid && isProcessAlive(cameraPid)),
       pid: isProcessAlive(cameraPid) ? cameraPid : null,
-      currentPeople: Number.isFinite(Number(snapshot?.raw)) ? Number(snapshot.raw) : null,
+      currentPeople: Number.isFinite(Number(snapshot?.count ?? snapshot?.raw))
+        ? Number(snapshot.count ?? snapshot.raw) : null,
+      candidates: Number.isFinite(Number(snapshot?.candidates)) ? Number(snapshot.candidates) : null,
       inferenceMs: Number.isFinite(Number(snapshot?.infer_ms)) ? Number(snapshot.infer_ms) : null,
+      fps: Number.isFinite(Number(snapshot?.fps)) ? Number(snapshot.fps) : null,
+      detectionStatus: snapshot?.status || null,
       lastFrameAt: snapshot?.ts || null,
     },
     bridge: {

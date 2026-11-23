@@ -24,6 +24,13 @@ logs/
 **/logs/
 computer-vision/.run/
 
+# Computer Vision runtime outputs
+computer-vision/counts.csv
+computer-vision/ignore_zones.json
+computer-vision/result.jpg
+computer-vision/test.webp
+computer-vision/headcount-main.zip
+
 # Backups
 backups/
 _backup_*/
