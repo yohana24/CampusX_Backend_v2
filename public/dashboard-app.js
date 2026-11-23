@@ -697,7 +697,10 @@
     setText($('#cx-cv-inference'), candidates == null ? inferenceText : `${inferenceText} · ${Math.round(candidates)} cand`);
     const fps = data?.camera?.fps;
     setText($('#cx-cv-fps'), fps == null ? '—' : `${fmt(fps, 1)} fps`);
-    setText($('#cx-cv-detection-status'), data?.camera?.detectionStatus || '—');
+    const cvModel = data?.camera?.model;
+    const cvDetector = data?.camera?.detector;
+    const cvStatus = data?.camera?.detectionStatus || '—';
+    setText($('#cx-cv-detection-status'), cvModel || cvDetector ? `${cvStatus} · ${cvDetector || ''}${cvModel ? ` (${cvModel})` : ''}` : cvStatus);
 
     const startButton = $('#cx-cv-start');
     const stopButton = $('#cx-cv-stop');

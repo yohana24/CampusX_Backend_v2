@@ -1,8 +1,8 @@
 """Bridge the original headcount Flask JSON output to CampusX MQTT.
 
-The detection algorithm stays in web_count3.py (head240.pt). This process only
-reads /json and publishes people_count telemetry; it does not open the camera
-or run YOLO.
+The detection algorithm stays in web_count3.py (person or head detector, chosen
+by CV_DETECTOR). This process only reads /json and publishes people_count
+telemetry; it does not open the camera or run YOLO.
 """
 from __future__ import annotations
 

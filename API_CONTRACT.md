@@ -315,11 +315,11 @@ Automation triggers only from newly saved `people_count` readings. The condition
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| GET | `/computer-vision/status` | Camera/bridge process snapshot. `data.camera` includes `currentPeople`, `candidates`, `inferenceMs`, `fps`, `detectionStatus` and `lastFrameAt`. |
+| GET | `/computer-vision/status` | Camera/bridge process snapshot. `data.camera` includes `currentPeople`, `candidates`, `inferenceMs`, `fps`, `detectionStatus`, `detector`, `model` and `lastFrameAt`. |
 | POST | `/computer-vision/start` | Runs configured PowerShell start script (`web_count3.py` + `mqtt_bridge.py`). |
 | POST | `/computer-vision/stop` | Runs configured PowerShell stop script. |
 
-The camera service uses `head240.pt` (single `head` class) with ByteTrack tracking and head-count smoothing. Its local `/json` exposes `count`, `raw`, `candidates`, `status`, `infer_ms`, `fps` and `ts`; the MQTT bridge still publishes `people_count` telemetry unchanged.
+The camera service reads any connected webcam (`CV_SOURCE`, default `0`). `CV_DETECTOR=person` (default) uses `yolov8n.pt` class 0 on the full frame for front-facing cameras; `CV_DETECTOR=head` uses `head240.pt` for overhead/ESP32-CAM 240px feeds. Both use ByteTrack with detection confirmation and smoothing. Its local `/json` exposes `count`, `raw`, `candidates`, `status`, `infer_ms`, `fps`, `ts`, `detector`, `model` and `label`; the MQTT bridge still publishes `people_count` telemetry unchanged. All detector settings come from `CV_*` environment variables (see `computer-vision/.env.example`).
 
 Execution policy comes from `CAMPUSX_POWERSHELL_EXECUTION_POLICY` (default `RemoteSigned`), not from hardcoded `-ExecutionPolicy Bypass`.
 

@@ -514,7 +514,10 @@
     setText('control-cv-inference', candidates === null || candidates === undefined ? inferenceText : `${inferenceText} · ${Math.round(Number(candidates))} cand`);
     const fps = data?.camera?.fps;
     setText('control-cv-fps', fps === null || fps === undefined ? '—' : `${Number(fps).toFixed(1)} fps`);
-    setText('control-cv-detection-status', data?.camera?.detectionStatus || '—');
+    const cvModel = data?.camera?.model;
+    const cvDetector = data?.camera?.detector;
+    const cvStatus = data?.camera?.detectionStatus || '—';
+    setText('control-cv-detection-status', cvModel || cvDetector ? `${cvStatus} · ${cvDetector || ''}${cvModel ? ` (${cvModel})` : ''}` : cvStatus);
 
     const startButton = $('#control-cv-start');
     const stopButton = $('#control-cv-stop');

@@ -158,6 +158,8 @@ async function getStatus() {
       inferenceMs: Number.isFinite(Number(snapshot?.infer_ms)) ? Number(snapshot.infer_ms) : null,
       fps: Number.isFinite(Number(snapshot?.fps)) ? Number(snapshot.fps) : null,
       detectionStatus: snapshot?.status || null,
+      detector: snapshot?.detector || null,
+      model: snapshot?.model || null,
       lastFrameAt: snapshot?.ts || null,
     },
     bridge: {

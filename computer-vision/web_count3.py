@@ -1,8 +1,11 @@
 """
-Head counter (final version)
+CampusX people counter (front webcam by default, overhead heads optional)
   python web_count3.py              -> run the counter (open http://localhost:5000)
   python web_count3.py --always     -> ignore the 9-15 working hours (for testing)
   python web_count3.py --calibrate  -> run ONCE with an EMPTY room to learn fixed "ghost" spots
+
+CV_DETECTOR=person (default) uses yolov8n.pt class 0 on any connected webcam.
+CV_DETECTOR=head uses head240.pt for top-down / ESP32-CAM 240px footage.
 """
 import os, sys, time, json, csv, threading
 from collections import deque
@@ -17,38 +20,74 @@ from ultralytics import YOLO
 
 # ================== الإعدادات ==================
 # CampusX settings come from the environment (the server loads .env into its
-# child processes). Defaults keep the original local behaviour, except the web
-# server binds to loopback instead of all network interfaces.
-MODEL_PATH = os.getenv("CV_MODEL_PATH", "head240.pt").strip()
+# child processes). CV_DETECTOR chooses a preset for the camera angle; any
+# explicit CV_* variable below overrides that preset.
+DETECTOR = os.getenv("CV_DETECTOR", "person").strip().lower()
+if DETECTOR not in ("person", "head"):
+    raise SystemExit(f"CV_DETECTOR must be 'person' or 'head', got {DETECTOR!r}")
+
+PRESETS = {
+    # Front-facing webcam: full COCO person boxes are what the webcam actually sees.
+    "person": dict(model="yolov8n.pt", simulate240=False, conf_keep=0.20,
+                   conf_new=0.40, min_hits=3, grace=10, smooth=5,
+                   min_area=0.02, max_area=0.85, min_ratio=0.40, max_ratio=3.0,
+                   label="people", class_filter=0),
+    # Overhead / ESP32-CAM 240px: model trained to see only the top of heads.
+    "head": dict(model="head240.pt", simulate240=True, conf_keep=0.20,
+                 conf_new=0.40, min_hits=6, grace=10, smooth=10,
+                 min_area=0.0002, max_area=0.10, min_ratio=0.5, max_ratio=2.5,
+                 label="heads", class_filter=0),
+}
+P = PRESETS[DETECTOR]
+
+
+def env_int(name, default):
+    return int(os.getenv(name, str(default)))
+
+
+def env_float(name, default):
+    return float(os.getenv(name, str(default)))
+
+
+def env_bool(name, default):
+    return os.getenv(name, str(default)).strip().lower() in ("1", "true", "yes", "on")
+
+
+MODEL_PATH = os.getenv("CV_MODEL_PATH", P["model"]).strip()
 _cv_source = os.getenv("CV_SOURCE", "0").strip()
 SOURCE = int(_cv_source) if _cv_source.isdigit() else _cv_source  # 0 = laptop webcam, URL = ESP32-CAM
 HOST = os.getenv("CV_WEB_HOST", "127.0.0.1").strip()
-PORT = int(os.getenv("CV_WEB_PORT", "5000"))
-TARGET_FPS = int(os.getenv("CV_TARGET_FPS", "5"))
-ACTIVE_FROM = int(os.getenv("CV_ACTIVE_FROM", "9"))
-ACTIVE_TO = int(os.getenv("CV_ACTIVE_TO", "15"))
-IMGSZ = int(os.getenv("CV_IMGSZ", "640"))
+PORT = env_int("CV_WEB_PORT", 5000)
+TARGET_FPS = env_int("CV_TARGET_FPS", 5)
+ACTIVE_FROM = env_int("CV_ACTIVE_FROM", 9)
+ACTIVE_TO = env_int("CV_ACTIVE_TO", 15)
+IMGSZ = env_int("CV_IMGSZ", 640)
+CLASS_FILTER = env_int("CV_CLASS_FILTER", P["class_filter"])  # 0 = person (COCO) or head (head240)
 
-CONF_KEEP = 0.20                 # أقل ثقة يتابعها التتبّع
-CONF_NEW = 0.40                  # لازم الراس تعدّي الثقة دي مرة على الأقل عشان تتحسب (بيقلل الأشباح)
-MIN_HITS = 6                     # لازم تتشاف في 6 صور على الأقل (حوالي ثانية وشوية)
-GRACE = 10                       # لو اختفت كام صورة تفضل محسوبة
-SMOOTH = 10                      # الرقم النهائي = وسيط آخر 10 قراءات
+CONF_KEEP = env_float("CV_CONF_KEEP", P["conf_keep"])   # أقل ثقة يتابعها التتبّع
+CONF_NEW = env_float("CV_CONF_NEW", P["conf_new"])     # لازم تعدّي الثقة دي مرة على الأقل عشان تتحسب
+MIN_HITS = env_int("CV_MIN_HITS", P["min_hits"])       # لازم تتشاف في كام صورة قبل التأكيد
+GRACE = env_int("CV_GRACE", P["grace"])                 # لو اختفت كام صورة تفضل محسوبة
+SMOOTH = env_int("CV_SMOOTH", P["smooth"])             # الرقم النهائي = وسيط آخر قراءات
 
-MIN_AREA, MAX_AREA = 0.0002, 0.10        # حجم المربع (نسبة من الصورة)
-MIN_RATIO, MAX_RATIO = 0.5, 2.5          # الطول / العرض
+MIN_AREA = env_float("CV_MIN_AREA", P["min_area"])     # حجم المربع (نسبة من الصورة)
+MAX_AREA = env_float("CV_MAX_AREA", P["max_area"])
+MIN_RATIO = env_float("CV_MIN_RATIO", P["min_ratio"])  # الطول / العرض
+MAX_RATIO = env_float("CV_MAX_RATIO", P["max_ratio"])
+LABEL = P["label"]                                     # "people" أو "heads"
 
 MANUAL_ZONES = [                 # مناطق تتجاهلها يدوياً: (x1, y1, x2, y2) بنسبة من 0 لـ 1
     # (0.00, 0.00, 0.20, 0.30),
 ]
 ZONES_FILE = os.getenv("CV_ZONES_FILE", "ignore_zones.json") # بيتعمل من --calibrate
-CALIBRATE_SECONDS = 30
+CALIBRATE_SECONDS = env_int("CV_CALIBRATE_SECONDS", 30)
 LOG_FILE = os.getenv("CV_LOG_FILE", "counts.csv")          # سجل العدد
-LOG_EVERY = 60                   # ثانية
+LOG_EVERY = env_int("CV_LOG_EVERY", 60)                    # ثانية
 # ===============================================
 
-ALWAYS = "--always" in sys.argv or os.getenv("CV_ALWAYS", "true").strip().lower() in ("1", "true", "yes", "on")
-SIMULATE_240 = isinstance(SOURCE, int) and os.getenv("CV_SIMULATE_240", "true").strip().lower() in ("1", "true", "yes", "on")  # الوب كام بتتصغّر لـ 240 عشان تحاكي الـ ESP32-CAM
+ALWAYS = "--always" in sys.argv or env_bool("CV_ALWAYS", True)
+# الوب كام الأمامي بيتقرأ بحجمه الكامل؛ تصغير 240 مطلوب بس لكاميرا الـ ESP32 العلوية.
+SIMULATE_240 = isinstance(SOURCE, int) and env_bool("CV_SIMULATE_240", P["simulate240"])
 
 model = YOLO(MODEL_PATH)
 state = {"count": 0, "cand": 0, "status": "starting", "infer": 0.0, "fps": 0.0,
@@ -70,7 +109,7 @@ class Camera:
             try:
                 if use_cv:
                     if cap is None or not cap.isOpened():
-                        cap = cv2.VideoCapture(SOURCE)
+                        cap = cv2.VideoCapture(SOURCE, cv2.CAP_DSHOW if os.name == "nt" else 0)
                         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                     ok, f = cap.read()
                     if not ok:
@@ -155,7 +194,8 @@ def calibrate():
         if SIMULATE_240:
             frame = shrink_to_240(frame)
         h, w = frame.shape[:2]
-        res = model.predict(frame, conf=CONF_KEEP, iou=0.5, imgsz=IMGSZ, verbose=False)[0]
+        res = model.predict(frame, classes=[CLASS_FILTER], conf=CONF_KEEP,
+                            iou=0.5, imgsz=IMGSZ, verbose=False)[0]
         frames += 1
         for b in res.boxes.xyxy.tolist():
             nb = [b[0] / w, b[1] / h, b[2] / w, b[3] / h]
@@ -205,7 +245,8 @@ def loop():
 
         t = time.time()
         res = model.track(frame, persist=True, tracker="bytetrack.yaml",
-                          conf=CONF_KEEP, iou=0.5, imgsz=IMGSZ, verbose=False)[0]
+                          classes=[CLASS_FILTER], conf=CONF_KEEP, iou=0.5,
+                          imgsz=IMGSZ, verbose=False)[0]
         ms = (time.time() - t) * 1000
         fi += 1
 
@@ -258,7 +299,7 @@ def loop():
         for x1, y1, x2, y2 in ZONES:
             cv2.rectangle(vis, (int(x1 * w * k), int(y1 * h * k)),
                           (int(x2 * w * k), int(y2 * h * k)), (0, 0, 255), 1)
-        cv2.putText(vis, f"heads {smooth}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.putText(vis, f"{LABEL} {smooth}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
         state["jpg"] = cv2.imencode(".jpg", vis)[1].tobytes()
         state.update(count=smooth, cand=len([t for t in seen if t not in kept_ids]),
@@ -273,7 +314,7 @@ def loop():
             with open(LOG_FILE, "a", newline="", encoding="utf-8") as f:
                 wr = csv.writer(f)
                 if new:
-                    wr.writerow(["time", "heads"])
+                    wr.writerow(["time", LABEL])
                 wr.writerow([now.strftime("%Y-%m-%d %H:%M:%S"), smooth])
 
         time.sleep(max(0.0, period - (time.time() - t0)))
@@ -283,7 +324,7 @@ def loop():
 app = Flask(__name__)
 
 PAGE = """<body style="background:#111;color:#aaa;font-family:monospace;padding:20px">
-<h1 id="n" style="color:#5f5;font-size:60px;margin:0">0 heads</h1>
+<h1 id="n" style="color:#5f5;font-size:60px;margin:0">0 __LABEL__</h1>
 <p id="s">...</p>
 <img src="/video" width="480"><br>
 <p>log:<br><span id="log"></span></p>
@@ -292,14 +333,15 @@ PAGE = """<body style="background:#111;color:#aaa;font-family:monospace;padding:
 async function tick(){
   try{
     const d = await (await fetch('/json')).json();
-    document.getElementById('n').textContent = d.count + ' head' + (d.count==1?'':'s');
+    document.getElementById('n').textContent = d.count + ' ' + d.label + (d.count==1?'':'s');
     document.getElementById('s').textContent = 'status=' + d.status + ' | fps=' + d.fps +
-      ' | candidates=' + d.candidates + ' | infer=' + d.infer_ms + 'ms';
+      ' | candidates=' + d.candidates + ' | infer=' + d.infer_ms + 'ms' +
+      ' | detector=' + d.detector + ' (' + d.model + ')';
     document.getElementById('log').innerHTML = d.log.join('<br>');
   }catch(e){}
 }
 setInterval(tick, 500); tick();
-</script></body>"""
+</script></body>""".replace("__LABEL__", LABEL)
 
 
 @app.route("/")
@@ -327,10 +369,11 @@ def frame():
 @app.route("/json")
 def js():
     # `raw` is kept as an alias so the existing CampusX MQTT bridge and older
-    # dashboard readers keep working with the new head-counting service.
+    # dashboard readers keep working regardless of the active detector.
     return jsonify(count=state["count"], raw=state["count"], candidates=state["cand"],
                    status=state["status"], infer_ms=state["infer"], fps=state["fps"],
-                   ts=state["ts"], log=state["log"])
+                   ts=state["ts"], log=state["log"], detector=DETECTOR,
+                   model=MODEL_PATH, label=LABEL)
 
 
 @app.route("/health")
@@ -342,6 +385,8 @@ if __name__ == "__main__":
     if "--calibrate" in sys.argv:
         calibrate()
     else:
-        print(f"Zones loaded: {len(ZONES)} | always={ALWAYS} | target fps={TARGET_FPS}")
+        print(f"Detector={DETECTOR} model={MODEL_PATH} source={SOURCE} "
+              f"simulate240={SIMULATE_240} | zones={len(ZONES)} | "
+              f"always={ALWAYS} | target fps={TARGET_FPS}")
         threading.Thread(target=loop, daemon=True).start()
         app.run(host=HOST, port=PORT, threaded=True, use_reloader=False)
