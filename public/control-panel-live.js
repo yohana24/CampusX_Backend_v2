@@ -517,8 +517,10 @@
     const cvModel = data?.camera?.model;
     const cvDetector = data?.camera?.detector;
     const cvStatus = data?.camera?.detectionStatus || '—';
-    const cvFallback = data?.camera?.faceFallback ? ' · face-fallback' : '';
-    const cvSource = cvModel || cvDetector ? ` · ${cvDetector || ''}${cvModel ? ` (${cvModel})` : ''}${cvFallback}` : cvFallback;
+    const cvSourceLabel = data?.camera?.source || (data?.camera?.faceFallback ? 'face' : '');
+    const cvSource = cvModel || cvDetector
+      ? ` · ${cvDetector || ''}${cvModel ? ` (${cvModel})` : ''}${cvSourceLabel ? ` · ${cvSourceLabel}` : ''}`
+      : (cvSourceLabel ? ` · ${cvSourceLabel}` : '');
     setText('control-cv-detection-status', `${cvStatus}${cvSource}`);
 
     const startButton = $('#control-cv-start');

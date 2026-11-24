@@ -191,7 +191,7 @@ const contract = {
     { method: 'GET', path: `${API}/states/latest`, auth: 'session', note: 'Latest confirmed state per device + StateCode' },
     { method: 'POST', path: `${API}/states`, auth: 'session', note: 'Manual state record' },
     { method: 'GET,PUT', path: `${API}/occupancy-automation`, auth: 'session', note: 'Per-room people-count automation settings' },
-    { method: 'GET,POST', path: `${API}/computer-vision/*`, auth: 'session', note: 'status / start / stop; head240.pt default on any webcam with frontal face fallback, raw + detection preview at 127.0.0.1:5000, candidates/fps/detector/model/faceFallback' },
+    { method: 'GET,POST', path: `${API}/computer-vision/*`, auth: 'session', note: 'status / start / stop; CV_DETECTOR=auto = head240.pt (top) + face cascade (front) + yolov8n person (side/back), one live detection image in dashboard via streamUrl, candidates/fps/detector/model/source/faceFallback' },
     { method: 'GET', path: `${API}/stream`, auth: 'session', note: 'Server-Sent Events (telemetry, alert, command, device.state)' },
     { method: 'GET', path: '/docs', auth: 'public', note: 'Human-readable documentation landing page' },
     { method: 'GET', path: '/docs/contract.json', auth: 'public', note: 'This machine-readable contract' },

@@ -84,6 +84,9 @@
 .cx-cv-status-item { min-width:0; display:grid; gap:6px; padding:12px; border-radius:10px; background:rgba(148,163,184,.07); }
 .cx-cv-status-item span { color:var(--text-muted, #8b949e); font-size:10px; text-transform:uppercase; letter-spacing:.04em; }
 .cx-cv-status-item strong { color:var(--text-main, #e6edf3); font-size:14px; overflow-wrap:anywhere; }
+.cx-cv-live-frame { margin-top:12px; min-height:60px; display:grid; place-items:center; border-radius:10px; background:rgba(148,163,184,.07); overflow:hidden; }
+.cx-cv-live-frame img { display:block; width:100%; max-width:640px; height:auto; background:#000; }
+.cx-cv-live-frame span { color:var(--text-muted, #8b949e); font-size:11px; padding:18px; }
 .cx-cv-manager-actions { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin-top:14px; }
 .cx-cv-manager-actions button, .cx-cv-manager-actions a { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:36px; text-decoration:none; }
 .cx-cv-manager-actions svg { width:14px; height:14px; }

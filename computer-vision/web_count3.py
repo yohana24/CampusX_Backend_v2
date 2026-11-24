@@ -1,13 +1,15 @@
 """
-CampusX people counter (front webcam by default, overhead heads optional)
+CampusX people counter (reads any connected webcam)
   python web_count3.py              -> run the counter (open http://localhost:5000)
   python web_count3.py --always     -> ignore the 9-15 working hours (for testing)
   python web_count3.py --calibrate  -> run ONCE with an EMPTY room to learn fixed "ghost" spots
 
-CV_DETECTOR=head (default) uses head240.pt for top-down / ESP32-CAM footage.
-On a front-facing webcam where head240 sees nothing, CV_FACE_FALLBACK=true adds
-frontal-face detections so the same service still counts and draws boxes.
-CV_DETECTOR=person uses yolov8n.pt class 0 instead.
+CV_DETECTOR=auto (default) covers every direction with one count:
+  1) head240.pt -> heads seen from above (top-down / ESP32-CAM)
+  2) frontal face cascade -> faces on a front-facing webcam
+  3) yolov8n.pt class 0 -> full person from the side / behind / any angle
+CV_DETECTOR=head forces head240.pt only; CV_DETECTOR=person forces yolov8n.pt only.
+The active source is reported as `source` in /json and in the dashboard status.
 """
 import os, sys, time, json, csv, threading
 from collections import deque
@@ -24,9 +26,9 @@ from ultralytics import YOLO
 # CampusX settings come from the environment (the server loads .env into its
 # child processes). CV_DETECTOR chooses a preset for the camera angle; any
 # explicit CV_* variable below overrides that preset.
-DETECTOR = os.getenv("CV_DETECTOR", "head").strip().lower()
-if DETECTOR not in ("person", "head"):
-    raise SystemExit(f"CV_DETECTOR must be 'person' or 'head', got {DETECTOR!r}")
+DETECTOR = os.getenv("CV_DETECTOR", "auto").strip().lower()
+if DETECTOR not in ("auto", "person", "head"):
+    raise SystemExit(f"CV_DETECTOR must be 'auto', 'person' or 'head', got {DETECTOR!r}")
 
 PRESETS = {
     # Front-facing webcam: full COCO person boxes are what the webcam actually sees.
@@ -39,8 +41,14 @@ PRESETS = {
                  conf_new=0.40, min_hits=3, grace=10, smooth=5,
                  min_area=0.0002, max_area=0.10, min_ratio=0.5, max_ratio=2.5,
                  label="heads", class_filter=0),
+    # All directions: head240 (top) -> face (front) -> person (side/back/any).
+    "auto": dict(model="head240.pt", simulate240=True, conf_keep=0.20,
+                 conf_new=0.40, min_hits=3, grace=10, smooth=5,
+                 min_area=0.0002, max_area=0.10, min_ratio=0.5, max_ratio=2.5,
+                 label="heads", class_filter=0),
 }
 P = PRESETS[DETECTOR]
+BASE_SOURCE = "person" if DETECTOR == "person" else "head"
 
 
 def env_int(name, default):
@@ -90,17 +98,38 @@ LOG_EVERY = env_int("CV_LOG_EVERY", 60)                    # ثانية
 ALWAYS = "--always" in sys.argv or env_bool("CV_ALWAYS", True)
 # الوب كام الأمامي بيتقرأ بحجمه الكامل؛ تصغير 240 مطلوب بس لكاميرا الـ ESP32 العلوية.
 SIMULATE_240 = isinstance(SOURCE, int) and env_bool("CV_SIMULATE_240", P["simulate240"])
-# head240.pt مدرّب على رؤوس من فوق. لو الكاميرا أمامية ومفيش كشف، نكمّل بوجوه أمامية.
+# head240.pt مدرّب على رؤوس من فوق. لو الكاميرا أمامية ومفيش كشف، نكمّل بوجوه أمامية،
+# ولو الجنب/الخلف نكمّل بكاشف الأشخاص الكاملين (يشتغل في أي اتجاه).
 FACE_FALLBACK = env_bool("CV_FACE_FALLBACK", True)
+PERSON_FALLBACK = env_bool("CV_PERSON_FALLBACK", True)
+PERSON_MODEL_PATH = os.getenv("CV_PERSON_MODEL", "yolov8n.pt").strip()
+PERSON_CONF = env_float("CV_PERSON_CONF", 0.25)
+
+# حدود مربعات الكاشفات المساعدة (مختلفة عن حدود رؤوس head240.pt)
+FACE_MIN_AREA, FACE_MAX_AREA = env_float("CV_FACE_MIN_AREA", 0.01), env_float("CV_FACE_MAX_AREA", 0.40)
+FACE_MIN_RATIO, FACE_MAX_RATIO = env_float("CV_FACE_MIN_RATIO", 0.6), env_float("CV_FACE_MAX_RATIO", 1.8)
+PERSON_MIN_AREA, PERSON_MAX_AREA = env_float("CV_PERSON_MIN_AREA", 0.02), env_float("CV_PERSON_MAX_AREA", 0.90)
+PERSON_MIN_RATIO, PERSON_MAX_RATIO = env_float("CV_PERSON_MIN_RATIO", 0.3), env_float("CV_PERSON_MAX_RATIO", 4.0)
 
 model = YOLO(MODEL_PATH)
+person_model = None  # lazy: أول استخدام بس، عشان الـ Start يفضل سريع
+
+
+def get_person_model():
+    global person_model
+    if person_model is None:
+        person_model = YOLO(PERSON_MODEL_PATH)
+    return person_model
+
+
 try:
     face_cascade = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 except Exception:
     face_cascade = None
 state = {"count": 0, "cand": 0, "status": "starting", "infer": 0.0, "fps": 0.0,
-         "ts": "", "jpg": None, "raw_jpg": None, "fallback": False, "log": []}
+         "ts": "", "jpg": None, "raw_jpg": None, "fallback": False,
+         "source": BASE_SOURCE, "log": []}
 
 
 # ---------------------------- الكاميرا ----------------------------
@@ -177,15 +206,20 @@ def in_zone(cx, cy, w, h):
     return any(x1 * w <= cx <= x2 * w and y1 * h <= cy <= y2 * h for x1, y1, x2, y2 in ZONES)
 
 
-def valid_box(x1, y1, x2, y2, w, h):
+def valid_box_for(x1, y1, x2, y2, w, h, min_area, max_area, min_ratio, max_ratio):
     bw, bh = x2 - x1, y2 - y1
     if bw <= 0 or bh <= 0:
         return False
-    if not (MIN_AREA <= bw * bh / (w * h) <= MAX_AREA):
+    if not (min_area <= bw * bh / (w * h) <= max_area):
         return False
-    if not (MIN_RATIO <= bh / bw <= MAX_RATIO):
+    if not (min_ratio <= bh / bw <= max_ratio):
         return False
     return not in_zone((x1 + x2) / 2, (y1 + y2) / 2, w, h)
+
+
+def valid_box(x1, y1, x2, y2, w, h):
+    return valid_box_for(x1, y1, x2, y2, w, h,
+                         MIN_AREA, MAX_AREA, MIN_RATIO, MAX_RATIO)
 
 
 # ---------------------------- المعايرة ----------------------------
@@ -274,23 +308,50 @@ def loop():
                 tr["maxconf"] = max(tr["maxconf"], c)
                 tr["last"], tr["box"] = fi, b
 
-        # head240.pt بيشوف الرؤوس من فوق بس. على webcam أمامية بنكمّل بكاشف الوجوه،
-        # ونحط مربعاته في نفس الـ tracker عشان العدد والرسم يتطابقوا.
-        used_fallback = False
+        # head240.pt بيشوف الرؤوس من فوق بس. عشان كده بنكمّل بكاشف وجوه أمامي،
+        # ولو الجنب/الخلف بنكمّل بكاشف أشخاص كامل (أي اتجاه). كلهم يدخلوا نفس
+        # الـ tracker عشان العدد والرسم يتطابقوا، والمصدر يتسجّل في /json.
+        used_source = BASE_SOURCE
+
         if FACE_FALLBACK and not seen and face_cascade is not None:
             gray = cv2.cvtColor(full, cv2.COLOR_BGR2GRAY)
             faces = face_cascade.detectMultiScale(gray, 1.1, 3, minSize=(60, 60))
             for i, (x, y, fw, fh) in enumerate(faces):
                 box = [x * scale, y * scale, (x + fw) * scale, (y + fh) * scale]
-                if not valid_box(*box, w, h):
+                if not valid_box_for(*box, w, h, FACE_MIN_AREA, FACE_MAX_AREA,
+                                     FACE_MIN_RATIO, FACE_MAX_RATIO):
                     continue
-                used_fallback = True
+                used_source = "face"
                 tid, conf = 10000 + i, 0.99
                 seen[tid] = (box, conf)
                 tr = tracks.setdefault(tid, {"hits": 0, "maxconf": 0.0, "last": fi, "box": box})
                 tr["hits"] += 1
                 tr["maxconf"] = max(tr["maxconf"], conf)
                 tr["last"], tr["box"] = fi, box
+
+        if PERSON_FALLBACK and not seen and DETECTOR != "person":
+            # yolov8n.pt class 0 = person: بيشوف الجسم في أي زاوية (أمام/جنب/خلف)
+            try:
+                pres = get_person_model().predict(full, classes=[0], conf=PERSON_CONF,
+                                                  imgsz=IMGSZ, verbose=False)[0]
+                boxes = pres.boxes
+                if boxes is not None:
+                    for i, b in enumerate(boxes.xyxy.tolist()):
+                        box = [v * scale for v in b]
+                        if not valid_box_for(*box, w, h, PERSON_MIN_AREA, PERSON_MAX_AREA,
+                                             PERSON_MIN_RATIO, PERSON_MAX_RATIO):
+                            continue
+                        used_source = "person"
+                        tid, conf = 20000 + i, float(boxes.conf[i])
+                        seen[tid] = (box, conf)
+                        tr = tracks.setdefault(tid, {"hits": 0, "maxconf": 0.0, "last": fi, "box": box})
+                        tr["hits"] += 1
+                        tr["maxconf"] = max(tr["maxconf"], conf)
+                        tr["last"], tr["box"] = fi, box
+            except Exception as exc:
+                state["log"] = (state["log"] + [f"person fallback error: {exc}"])[-5:]
+
+        used_fallback = used_source != BASE_SOURCE
 
         for tid in [k for k, v in tracks.items() if fi - v["last"] > GRACE * 4]:
             del tracks[tid]
@@ -329,13 +390,14 @@ def loop():
         for x1, y1, x2, y2 in ZONES:
             cv2.rectangle(vis, (int(x1 * w * k), int(y1 * h * k)),
                           (int(x2 * w * k), int(y2 * h * k)), (0, 0, 255), 1)
-        headline = f"{LABEL} {smooth}" + (" [face-fallback]" if used_fallback else "")
+        headline = f"{LABEL} {smooth} [{used_source}]"
         cv2.putText(vis, headline, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
         state["jpg"] = cv2.imencode(".jpg", vis)[1].tobytes()
         state.update(count=smooth, cand=len([t for t in seen if t not in kept_ids]),
-                     status="يعمل", fallback=used_fallback, infer=round(ms, 1),
-                     fps=round(fps, 1), ts=datetime.now(timezone.utc).isoformat())
+                     status="يعمل", fallback=used_fallback, source=used_source,
+                     infer=round(ms, 1), fps=round(fps, 1),
+                     ts=datetime.now(timezone.utc).isoformat())
         state["log"] = (state["log"] + [f"{now:%H:%M:%S} count={smooth} raw={len(kept)} "
                                         f"infer={ms:.0f}ms fps={fps:.1f}"])[-5:]
 
@@ -357,12 +419,10 @@ app = Flask(__name__)
 PAGE = """<body style="background:#111;color:#ddd;font-family:monospace;padding:20px">
 <h1 id="n" style="color:#5f5;font-size:52px;margin:0">0 __LABEL__</h1>
 <p id="s">...</p>
-<div style="display:flex;gap:18px;flex-wrap:wrap">
-  <div><b>Camera view (raw)</b><br><img src="/rawstream" width="480" style="background:#000"></div>
-  <div><b>Detection view (__MODEL__)</b><br><img src="/video" width="480" style="background:#000"></div>
-</div>
+<p id="view">Camera + detections (__MODEL__)</p>
+<img src="/video" width="640" style="background:#000;max-width:100%"><br>
 <p>log:<br><span id="log"></span></p>
-<a href="/json">json</a> <a href="/frame">frame</a> <a href="/raw">raw</a> <a href="/health">health</a>
+<a href="/json">json</a> <a href="/frame">frame</a> <a href="/health">health</a>
 <script>
 async function tick(){
   try{
@@ -370,8 +430,8 @@ async function tick(){
     document.getElementById('n').textContent = d.count + ' ' + d.label + (d.count==1?'':'s');
     document.getElementById('s').textContent = 'status=' + d.status + ' | fps=' + d.fps +
       ' | candidates=' + d.candidates + ' | infer=' + d.infer_ms + 'ms' +
-      ' | detector=' + d.detector + ' (' + d.model + ')' +
-      (d.face_fallback ? ' | source=frontal-face-fallback' : ' | source=head240.pt');
+      ' | detector=' + d.detector + ' (' + d.model + ') | source=' + (d.source || d.detector) +
+      (d.face_fallback ? ' [fallback]' : '');
     document.getElementById('log').innerHTML = d.log.join('<br>');
   }catch(e){}
 }
@@ -426,7 +486,7 @@ def js():
                    status=state["status"], infer_ms=state["infer"], fps=state["fps"],
                    ts=state["ts"], log=state["log"], detector=DETECTOR,
                    model=MODEL_PATH, label=LABEL,
-                   face_fallback=state["fallback"])
+                   face_fallback=state["fallback"], source=state["source"])
 
 
 @app.route("/health")
@@ -438,8 +498,9 @@ if __name__ == "__main__":
     if "--calibrate" in sys.argv:
         calibrate()
     else:
-        print(f"Detector={DETECTOR} model={MODEL_PATH} source={SOURCE} "
-              f"simulate240={SIMULATE_240} face_fallback={FACE_FALLBACK} | "
+        print(f"Detector={DETECTOR} model={MODEL_PATH} camera={SOURCE} "
+              f"simulate240={SIMULATE_240} face_fallback={FACE_FALLBACK} "
+              f"person_fallback={PERSON_FALLBACK} person_model={PERSON_MODEL_PATH} | "
               f"zones={len(ZONES)} | always={ALWAYS} | target fps={TARGET_FPS}")
         threading.Thread(target=loop, daemon=True).start()
         app.run(host=HOST, port=PORT, threaded=True, use_reloader=False)

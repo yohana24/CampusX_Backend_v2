@@ -24,6 +24,7 @@ const BRIDGE_PID_FILE = path.join(STATE_DIR, 'bridge.pid');
 const cameraHost = String(process.env.CV_WEB_HOST || '127.0.0.1').trim();
 const cameraPort = Number.parseInt(process.env.CV_WEB_PORT || '5000', 10);
 const previewUrl = `http://${cameraHost}:${cameraPort}/`;
+const streamUrl = `http://${cameraHost}:${cameraPort}/video`;
 let activeOperation = null;
 
 // WMI process scans are the slowest part of /status. Cache them briefly so a
@@ -161,6 +162,7 @@ async function getStatus() {
       detector: snapshot?.detector || null,
       model: snapshot?.model || null,
       faceFallback: typeof snapshot?.face_fallback === 'boolean' ? snapshot.face_fallback : null,
+      source: snapshot?.source || null,
       lastFrameAt: snapshot?.ts || null,
     },
     bridge: {
@@ -169,6 +171,7 @@ async function getStatus() {
       pid: bridgeRunning ? bridgePid : null,
     },
     previewUrl,
+    streamUrl,
     scripts: {
       start: fs.existsSync(START_SCRIPT),
       stop: fs.existsSync(STOP_SCRIPT),
