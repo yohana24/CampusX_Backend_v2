@@ -110,6 +110,9 @@ module.exports = Object.freeze({
   forceExitTimeoutMs: numberFromEnv('FORCE_EXIT_TIMEOUT_MS', 15000, 1000, 120000),
 
   strictHealth: booleanFromEnv('STRICT_HEALTH', false),
+  // Demo aid: run fake-actuator.js inside the backend so simulated relay/fan
+  // commands always get a command-response. Disable for production deployments.
+  fakeActuatorEnabled: booleanFromEnv('FAKE_ACTUATOR_ENABLED', false),
   publicOrigin: String(process.env.PUBLIC_ORIGIN || '').trim().replace(/\/+$/, ''),
   jsonBodyLimit: String(process.env.JSON_BODY_LIMIT || '1mb').trim(),
   dashboardRegistrationEnabled: booleanFromEnv('DASHBOARD_REGISTRATION_ENABLED', true),

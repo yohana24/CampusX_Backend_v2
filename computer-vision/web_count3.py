@@ -203,6 +203,21 @@ def iou(a, b):
     return inter / ua if ua > 0 else 0.0
 
 
+def iom(a, b):
+    """Intersection over the smaller box.
+
+    Nested boxes (a torso box inside a full-body box) have a low IoU but a high
+    IoM, so this catches the duplicate detections that inflate the head count.
+    """
+    ix1, iy1 = max(a[0], b[0]), max(a[1], b[1])
+    ix2, iy2 = min(a[2], b[2]), min(a[3], b[3])
+    inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+    area_a = max(0.0, a[2] - a[0]) * max(0.0, a[3] - a[1])
+    area_b = max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
+    smaller = min(area_a, area_b)
+    return inter / smaller if smaller > 0 else 0.0
+
+
 def load_zones():
     zones = [list(z) for z in MANUAL_ZONES]
     p = Path(ZONES_FILE)
@@ -374,13 +389,15 @@ def loop():
         def confirmed(tr):
             return tr["hits"] >= MIN_HITS and tr["maxconf"] >= CONF_NEW
 
-        # لو اتنين tracks مؤكدين فوق بعض (نفس الراس بـ ID مختلف) نعدّهم واحد
+        # لو اتنين tracks مؤكدين فوق بعض (نفس الشخص بـ ID مختلف) نعدّهم واحد.
+        # IoU بيمسك التداخل العادي، وIoM بيمسك المربع المتداخل جوه مربع أكبر.
         active = sorted(((tid, tr) for tid, tr in tracks.items()
                          if confirmed(tr) and fi - tr["last"] <= GRACE),
                         key=lambda kv: -kv[1]["hits"])
         kept = []
         for tid, tr in active:
-            if all(iou(tr["box"], o["box"]) < 0.3 for _, o in kept):
+            if all(iou(tr["box"], o["box"]) < 0.30 and iom(tr["box"], o["box"]) < 0.65
+                   for _, o in kept):
                 kept.append((tid, tr))
         recent.append(len(kept))
         smooth = int(np.median(recent))

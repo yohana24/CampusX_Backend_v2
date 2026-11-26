@@ -209,6 +209,23 @@ client.on('error', (error) => {
   console.error('[Fake Actuator] MQTT error:', error.message);
 });
 
+// When the backend supervises this process, exit if the backend disappears so a
+// hard-killed server does not leave an orphan actuator holding the subscription.
+const parentPid = Number(process.env.CAMPUSX_ACTUATOR_PARENT_PID || 0);
+if (Number.isInteger(parentPid) && parentPid > 0) {
+  const guard = setInterval(() => {
+    try {
+      process.kill(parentPid, 0);
+    } catch (error) {
+      if (error.code === 'ESRCH') {
+        console.log('[Fake Actuator] Parent backend is gone; exiting.');
+        client.end(false, {}, () => process.exit(0));
+      }
+    }
+  }, 5000);
+  guard.unref?.();
+}
+
 function shutdown(signal) {
   console.log(
     `\n[Fake Actuator] ${signal}; disconnecting...`

@@ -9,6 +9,7 @@ const { closeStreams } = require('./routes/api');
 
 const { startMqttService } = require('./services/mqttService');
 const { endClient } = require('./services/mqttClient');
+const { startFakeActuator, stopFakeActuator } = require('./services/fakeActuatorService');
 
 const {
   startDeviceHealthService,
@@ -92,6 +93,7 @@ async function shutdown(signal) {
   forceExit.unref?.();
 
   stopDeviceHealthService();
+  await stopFakeActuator();
   // Tell live dashboards to reconnect elsewhere instead of holding HTTP open.
   closeStreams('server_shutdown');
   await closeHttpServer();
@@ -121,6 +123,7 @@ if (process.platform === 'win32') {
 listenHttp();
 startMqttService();
 startDeviceHealthService();
+startFakeActuator();
 void initializeAuthWithRetry();
 
 process.on('unhandledRejection', (reason) => {
