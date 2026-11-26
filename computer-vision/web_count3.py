@@ -16,6 +16,15 @@ from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 
+# CV settings live next to this script so switching camera profiles does not
+# require restarting the Node backend. override=True makes this file win over
+# inherited process env (the backend spawns this script with its own .env).
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
+except ImportError:
+    pass
+
 import cv2
 import numpy as np
 import requests
@@ -147,7 +156,13 @@ class Camera:
             try:
                 if use_cv:
                     if cap is None or not cap.isOpened():
-                        cap = cv2.VideoCapture(SOURCE, cv2.CAP_DSHOW if os.name == "nt" else 0)
+                        # DirectShow is for local USB/built-in cameras only.
+                        # Network MJPEG streams (ESP32-CAM) need the default
+                        # FFmpeg backend, otherwise VideoCapture fails to open.
+                        backend = (cv2.CAP_DSHOW
+                                   if (os.name == "nt" and isinstance(SOURCE, int))
+                                   else cv2.CAP_ANY)
+                        cap = cv2.VideoCapture(SOURCE, backend)
                         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                     ok, f = cap.read()
                     if not ok:
