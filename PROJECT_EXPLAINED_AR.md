@@ -95,7 +95,7 @@ POST /api/v1/commands  (session + X-API-Key)
 
 | الملف | الشرح |
 | --- | --- |
-| `package.json` | تعريف المشروع `campusx-backend-v2`. فيه الـ entry point `src/server.js`،nodemon للـ dev، والأوامر: `start`, `dev`, `check`, `check:syntax`, `check:connections`, `smoke`, `verify`. Dependencies: `express`, `mqtt`, `mssql`, `msnodesqlv8`, `dotenv`. |
+| `package.json` | تعريف المشروع `campusx-backend-v2`. فيه الـ entry point `src/server.js`،nodemon للـ dev، والأوامر: `start`, `dev`, `check`, `check:syntax`, `check:connections`, `smoke`, `verify`. Dependencies: `express`, `mqtt`, `mssql` (tedious cross-platform), `dotenv`. `msnodesqlv8` اختياري للـ Windows legacy auth فقط. |
 | `package-lock.json` | قفل إصدارات npm. يُولّد تلقائيًا، لا تعدّله يدويًا. |
 | `app.js` | مجرد compatibility shim: `require('./src/server')`. عشان لو حد كتب `node app.js` يشتغل. |
 | `.env` | **سري — لا يرفع ولا يشارك.** فيه كل إعدادات التشغيل الفعلية: HOST/PORT، SQL، MQTT، مفاتيح الداشبورد، SMTP. شرح الأقسام في `.env.example`. |

@@ -61,9 +61,11 @@ All settings come from `.env` or process environment variables. There are no har
 | HTTP | `STRICT_HEALTH` | `false` | If true, `/health` returns 503 while degraded. |
 | HTTP | `PUBLIC_ORIGIN` | empty | Public browser origin (for example `http://127.0.0.1:3000`) used for allowed same-origin/CORS requests and auth origin checks. |
 | HTTP | `JSON_BODY_LIMIT` | `1mb` | Maximum JSON request body size. |
-| SQL | `SQL_SERVER`, `SQL_DATABASE` | required | ODBC server and database. |
-| SQL | `SQL_TRUSTED_CONNECTION` | `true` | Windows auth. If false, `SQL_USERNAME`/`SQL_PASSWORD` are required. |
-| SQL | `SQL_DRIVER`, `SQL_ENCRYPT`, `SQL_TRUST_SERVER_CERTIFICATE` | ODBC Driver 18 / false / true | ODBC driver options. |
+| SQL | `SQL_SERVER`, `SQL_DATABASE` | required | SQL Server host and database. `SQL_SERVER` accepts `host`, `host\instance`, `host,port` or `host\instance,port`. |
+| SQL | `SQL_USERNAME`, `SQL_PASSWORD` | required (tedious) | SQL authentication credentials for the cross-platform default driver. |
+| SQL | `SQL_PORT` | empty | Fixed TCP port. Recommended when connecting from Linux / Raspberry Pi. |
+| SQL | `SQL_TRUSTED_CONNECTION` | `false` | `false` uses pure-JS **tedious** (Windows/Linux/Raspberry Pi). `true` is the Windows-only legacy `msnodesqlv8` fallback and requires ODBC Driver 18. |
+| SQL | `SQL_DRIVER`, `SQL_ENCRYPT`, `SQL_TRUST_SERVER_CERTIFICATE` | ODBC Driver 18 / false / true | `SQL_DRIVER` is used only by the legacy Windows-auth path. `SQL_ENCRYPT` and `SQL_TRUST_SERVER_CERTIFICATE` apply to both drivers. |
 | SQL | `SQL_POOL_MAX`, `SQL_POOL_MIN`, `SQL_POOL_IDLE_TIMEOUT_MS` | 10, 0, 30000 | Pool sizing. |
 | SQL | `SQL_RETRY_COOLDOWN_MS` | 2000 | Backoff between failed connection attempts. |
 | MQTT | `MQTT_URL` | `mqtt://localhost:1883` | Broker URL. |
